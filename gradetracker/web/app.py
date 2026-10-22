@@ -510,6 +510,20 @@ def create_app(
 
         return None
 
+    @app.context_processor
+    def _client_location():
+        """remote_client: this page is being read from another device.
+
+        True on a phone over Tailscale, false in the laptop's own browser.
+        The difference matters for anything that opens a window: the SSO
+        browser and the Chromium profile live on the machine running gt
+        serve, so a button tapped on the phone takes effect somewhere else.
+
+        An extra host is by definition not loopback, so this is the loopback
+        set rather than _ALLOWED_HOSTS.
+        """
+        return {"remote_client": _host_only(request.host) not in _LOCAL_HOSTS}
+
     @app.teardown_appcontext
     def _close(exception):  # noqa: ANN001
         conn = g.pop("conn", None)

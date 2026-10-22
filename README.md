@@ -248,6 +248,10 @@ The laptop has to be awake. This serves from your machine: a closed lid means
 no dashboard. Nothing is hosted anywhere else. Traffic between your own devices
 is encrypted by Tailscale itself, so plain HTTP here is not sent in the clear.
 
+Reconnecting is a laptop job. Tapping Reconnect from the phone opens the
+Blackboard login window on the laptop, where the browser profile lives, so the
+phone keeps showing the last sync until someone finishes that login.
+
 Two people never share one dashboard. It has no login, so there is nothing to
 tell them apart and no way to show one of them only their own grades: a friend
 does all of this on their own tailnet, from their own install.

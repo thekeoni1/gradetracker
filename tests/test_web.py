@@ -2393,6 +2393,67 @@ def test_the_reconnect_banner_posts_directly(client, seeded_db):
     assert "/connections/blackboard/reconnect" in body
 
 
+# --- reading the page from another device ---------------------------------
+
+TAILNET_IP = "100.89.52.71"
+REMOTE_HINT = "Opens the login window on the laptop running gt serve"
+LOCAL_HINT = "Opens a real browser window"
+
+
+@pytest.fixture
+def tailnet_client(seeded_db, fakes):
+    """The app as `gt serve --tailscale` builds it, with the banner showing.
+
+    Reachable at the tailnet address as well as at loopback, which is what
+    lets one app answer both kinds of request.
+    """
+    conn = db.connect(seeded_db)
+    db.record_sync_run(conn, "blackboard", db.now_iso(), "auth_expired", message="expired")
+    conn.close()
+    app = create_app(
+        db_path=seeded_db,
+        sync_runner=fakes["sync"],
+        launcher=fakes["launcher"],
+        extra_hosts=[TAILNET_IP],
+    )
+    app.config.update(TESTING=True)
+    with app.test_client() as test_client:
+        yield test_client
+
+
+@pytest.mark.parametrize("path", ["/", "/connections"])
+def test_a_phone_is_told_the_login_opens_on_the_laptop(tailnet_client, path):
+    """Tapping Reconnect here opens Chromium somewhere else entirely."""
+    body = text(tailnet_client.get(path, base_url=f"http://{TAILNET_IP}:5000"))
+
+    assert REMOTE_HINT in body
+    assert LOCAL_HINT not in body
+    # Still offered: the laptop is usually within reach, and Duo comes to the
+    # phone either way.
+    assert "/connections/blackboard/reconnect" in body
+    assert "disabled" not in body
+
+
+@pytest.mark.parametrize("path", ["/", "/connections"])
+def test_the_laptops_own_browser_keeps_the_plain_wording(tailnet_client, path):
+    body = text(tailnet_client.get(path, base_url="http://127.0.0.1:5000"))
+
+    assert LOCAL_HINT in body
+    assert REMOTE_HINT not in body
+
+
+def test_the_port_and_an_ipv6_bracket_do_not_read_as_remote(seeded_db, fakes):
+    app = create_app(
+        db_path=seeded_db, sync_runner=fakes["sync"], launcher=fakes["launcher"]
+    )
+    app.config.update(TESTING=True)
+    with app.test_client() as client:
+        for base in ("http://127.0.0.1:5000", "http://localhost:5000", "http://[::1]:5000"):
+            body = text(client.get("/connections", base_url=base))
+            assert LOCAL_HINT in body, base
+            assert REMOTE_HINT not in body, base
+
+
 def test_a_successful_reconnect_records_a_login(client, seeded_db, fakes):
     from gradetracker.storage import connections as connections_store
 

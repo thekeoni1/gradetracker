@@ -1,0 +1,11 @@
+{#- Where the login window actually opens. Read from a phone over Tailscale
+    it is not this device, which is the point: the browser profile and the
+    SSO window belong to the laptop running gt serve. -#}
+<span class="sub">
+  {%- if remote_client %}
+    Opens the login window on the laptop running gt serve, not on this device.
+    Duo still pushes to your phone.
+  {%- else %}
+    Opens a real browser window for Hamilton SSO and Duo.
+  {%- endif %}
+</span>

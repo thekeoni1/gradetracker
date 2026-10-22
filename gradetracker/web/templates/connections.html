@@ -90,7 +90,7 @@
           <button class="primary"
                   hx-post="{{ url_for('reconnect_blackboard') }}"
                   hx-target="#reconnect-status" hx-swap="innerHTML">Reconnect</button>
-          <span class="sub">Opens a real browser window for Hamilton SSO and Duo.</span>
+          {% include "partials/reconnect_hint.html" with context %}
         </div>
         <div id="reconnect-status">
           {% include "partials/reconnect_status.html" with context %}
