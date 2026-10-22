@@ -23,6 +23,11 @@ dependencies = [
     "python-dotenv",
 ]
 
+[project.urls]
+Homepage = "https://github.com/thekeoni1/gradetracker"
+Repository = "https://github.com/thekeoni1/gradetracker.git"
+Issues = "https://github.com/thekeoni1/gradetracker/issues"
+
 [project.optional-dependencies]
 dev = ["pytest"]
 

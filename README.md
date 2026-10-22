@@ -36,8 +36,8 @@ does the thing and gives you the prompt back. That is the whole interface.
 first one picks where the app lives — your home folder is fine.
 
 ```
-git clone https://github.com/<owner>/<repo>.git
-cd <repo>
+git clone https://github.com/thekeoni1/gradetracker.git
+cd gradetracker
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -e ".[dev]"
 .venv\Scripts\python.exe -m playwright install chromium
