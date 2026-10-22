@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gradetracker"
 version = "0.1.0"
-description = "Local grade tracker that syncs Blackboard and Gradescope and applies syllabus grading rules"
+description = "Local grade tracker for Hamilton College students that syncs Blackboard and Gradescope and applies syllabus grading rules"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
