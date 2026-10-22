@@ -18,8 +18,7 @@ def _require_bb_base_url() -> str:
     """The configured Blackboard host, or a clear error and exit 1."""
     if not config.BB_BASE_URL:
         typer.echo(
-            "BB_BASE_URL is not set. Copy .env.example to .env and set it to "
-            "Hamilton's Blackboard host, e.g. https://blackboard.hamilton.edu",
+            "BB_BASE_URL is not set. Copy .env.example to .env.",
             err=True,
         )
         raise typer.Exit(1)

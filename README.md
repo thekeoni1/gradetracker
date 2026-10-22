@@ -228,7 +228,7 @@ It prints the address to open on the phone, e.g. `http://100.x.y.z:5000/`.
 That same address works in the laptop's own browser. Add the page to the home
 screen and it behaves like an app.
 
-Three things to know.
+Four things to know.
 
 The dashboard has no login. On your own tailnet that is fine, because only
 your own devices are on it. It is also why `--host` is fussy: it takes a
@@ -245,10 +245,8 @@ means those people can open the dashboard too, grades and all. If your tailnet
 is not just you, do not leave this running.
 
 The laptop has to be awake. This serves from your machine: a closed lid means
-no dashboard. Nothing is hosted anywhere else. A friend who wants the same
-thing installs their own copy and runs their own `gt login`; Tailscale only
-ever connects one person's own devices. Traffic between them is encrypted by
-Tailscale itself, so plain HTTP here is not sent in the clear.
+no dashboard. Nothing is hosted anywhere else. Traffic between your own devices
+is encrypted by Tailscale itself, so plain HTTP here is not sent in the clear.
 
 Two people never share one dashboard. It has no login, so there is nothing to
 tell them apart and no way to show one of them only their own grades: a friend
@@ -324,9 +322,8 @@ imports, so the maths is testable on its own and the dashboard and the CLI share
 one implementation. `storage/load.py` is the only module that knows both SQL and
 the engine's dataclasses.
 
-Fixtures under `tests/fixtures/` are synthetic but realistically shaped. They
-are not from real recon, so the Blackboard endpoint shapes may need revisiting
-once the real API is known.
+Fixtures under `tests/fixtures/` are shaped after the real Blackboard and
+Gradescope responses, with the names and grades invented.
 
 ## Licence
 

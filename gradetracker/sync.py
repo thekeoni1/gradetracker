@@ -160,7 +160,7 @@ def _sync_blackboard(raw_only: bool, min_interval_s: float | None = None) -> int
 
     if not config.BB_BASE_URL:
         typer.echo(
-            "blackboard: BB_BASE_URL is not set. Copy .env.example to .env and set it.",
+            "blackboard: BB_BASE_URL is not set. Copy .env.example to .env.",
             err=True,
         )
         return 1
