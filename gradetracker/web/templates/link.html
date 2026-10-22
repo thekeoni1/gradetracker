@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Links{% endblock %}
+{% block content %}
+
+  <section class="card">
+    <h2 style="margin-top:0">Course links</h2>
+    <p class="sub">
+      Blackboard and Gradescope name the same course differently, so each
+      platform course has to be attached to the course you actually take. An
+      unlinked one contributes nothing to any grade.
+    </p>
+  </section>
+
+  {% if not rows %}
+    <div class="empty">
+      <p>Nothing synced yet. Run <code>gt sync</code> first.</p>
+    </div>
+  {% else %}
+    <section class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Platform course</th>
+            <th>Term</th>
+            <th>Linked to</th>
+            <th>Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td>{{ row.source }}</td>
+              <td>{{ row.code or row.name }}<div class="sub">{{ row.name }}</div></td>
+              <td>{{ row.term or "--" }}</td>
+              <td>
+                {% if row.course_code %}
+                  <span class="badge ok">{{ row.course_code }}</span>
+                {% else %}
+                  <span class="badge bad">unlinked</span>
+                {% endif %}
+              </td>
+              <td>
+                <form method="post" action="{{ url_for('do_link', source_course_id=row.id) }}">
+                  <div class="row" style="gap:4px">
+                    <select name="course_id" aria-label="course for {{ row.name }}">
+                      <option value="">choose...</option>
+                      {% for course in courses %}
+                        <option value="{{ course['id'] }}" {% if course['id'] == row.course_id %}selected{% endif %}>
+                          {{ course['code'] }} ({{ course['term'] or "no term" }})
+                        </option>
+                      {% endfor %}
+                    </select>
+                    <button class="small" type="submit" name="action" value="link">link</button>
+                    {% if row.suggestion %}
+                      <button class="small" type="submit" name="action" value="create">create {{ row.suggestion }}</button>
+                    {% endif %}
+                    {% if row.course_id %}
+                      <button class="small" type="submit" name="action" value="unlink">unlink</button>
+                    {% endif %}
+                  </div>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  {% endif %}
+
+{% endblock %}

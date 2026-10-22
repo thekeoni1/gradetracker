@@ -1,0 +1,25 @@
+{
+  "mode": "weighted",
+  "categories": [
+    { "name": "Problem Sets", "weight": 40, "drop_lowest": 1 },
+    { "name": "Quizzes", "weight": 10, "drop_lowest": 0 },
+    { "name": "Midterms", "weight": 25, "drop_lowest": 0, "rank_weights": [15, 10] },
+    { "name": "Final Exam", "weight": 25, "drop_lowest": 0 }
+  ],
+  "cutoffs": [
+    { "letter": "A", "min_percent": 93 },
+    { "letter": "A-", "min_percent": 90 },
+    { "letter": "B+", "min_percent": 87 },
+    { "letter": "B", "min_percent": 83 },
+    { "letter": "B-", "min_percent": 80 },
+    { "letter": "C+", "min_percent": 77 },
+    { "letter": "C", "min_percent": 73 },
+    { "letter": "C-", "min_percent": 70 },
+    { "letter": "D+", "min_percent": 67 },
+    { "letter": "D", "min_percent": 63 },
+    { "letter": "D-", "min_percent": 60 },
+    { "letter": "F", "min_percent": 0 }
+  ],
+  "bonus_percent": 0,
+  "notes": "Final may be curved. The better midterm counts 15% and the other 10%."
+}

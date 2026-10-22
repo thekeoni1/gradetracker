@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block content %}
+
+  <div class="row" style="justify-content:space-between;align-items:center">
+    <h2 style="margin:0;font-size:16px">Courses</h2>
+    <form hx-post="{{ url_for('start_sync') }}" hx-target="#sync-status" hx-swap="innerHTML">
+      <button class="primary" type="submit">Sync now</button>
+    </form>
+  </div>
+
+  <div id="sync-status">
+    {# cards = none: the partial's out-of-band swap is for htmx replies from
+       /sync and /sync/status. On a full page load there is nothing to swap
+       into, so it would render the cards here as well as in #cards below. #}
+    {% with job = sync_job, cards = none %}
+      {% include "partials/sync_status.html" with context %}
+    {% endwith %}
+  </div>
+
+  {% for connection in connections %}
+    {% if connection.state == "needs reconnect" %}
+      <div class="card">
+        <ul class="warnings blocking" style="margin-top:0">
+          <li>
+            {{ connection.source }} needs reconnecting, so its grades are frozen
+            at {{ connection.last_success_ago }}.
+          </li>
+        </ul>
+        {% if connection.source == "blackboard" %}
+          <div class="actions">
+            <button class="primary"
+                    hx-post="{{ url_for('reconnect_blackboard') }}"
+                    hx-target="#reconnect-status" hx-swap="innerHTML">Reconnect now</button>
+            <a class="button" href="{{ url_for('connections') }}">Connections</a>
+          </div>
+          <div id="reconnect-status">
+            {% with job = reconnect_job %}{% include "partials/reconnect_status.html" with context %}{% endwith %}
+          </div>
+        {% else %}
+          <div class="actions">
+            <a class="button" href="{{ url_for('connections') }}">Re-enter the password</a>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% endfor %}
+
+  <div id="cards">
+    {% include "partials/course_cards.html" with context %}
+  </div>
+
+  <section class="card">
+    <h3 style="margin-top:0">Recent changes</h3>
+    {% if changes %}
+      <table>
+        <thead>
+          <tr><th>Course</th><th>Assignment</th><th>What changed</th><th>When</th></tr>
+        </thead>
+        <tbody>
+          {% for change in changes %}
+            <tr>
+              <td>
+                {% if change.course_id %}
+                  <a href="{{ url_for('course', course_id=change.course_id) }}">{{ change.course_code }}</a>
+                {% else %}
+                  {{ change.course_code }}
+                {% endif %}
+              </td>
+              <td>{{ change.assignment_name }}</td>
+              <td>
+                {% if change.kind == "new" %}
+                  <span class="badge">new</span> {{ change.new_value }}
+                {% elif change.kind == "excluded" %}
+                  {# The app's own decision, not the platform's, so it says
+                     what it did rather than old-to-new. #}
+                  <span class="badge warn">excluded</span> {{ change.new_value }}
+                {% else %}
+                  <span class="badge">{{ change.kind }}</span>
+                  {{ change.old_value }} &rarr; {{ change.new_value }}
+                {% endif %}
+              </td>
+              <td class="sub">{{ (change.seen_at or "")[:16] | replace("T", " ") }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="sub">Nothing yet. Changes appear here after the second sync.</p>
+    {% endif %}
+  </section>
+
+{% endblock %}

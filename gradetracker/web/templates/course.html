@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}{{ course.code }}{% endblock %}
+{% block content %}
+  <div id="course-detail">
+    {% include "partials/course_detail.html" with context %}
+  </div>
+
+  <script>
+    // Which category lists the user left open, per course. The page is
+    // perfectly usable without this: the blocks collapse on their own, and
+    // every read and write here is wrapped because storage can be blocked.
+    (function () {
+      var PREFIX = "gt-open-";
+
+      function remember(key, open) {
+        try {
+          localStorage.setItem(PREFIX + key, open ? "1" : "0");
+        } catch (error) {
+          /* private window, or site data blocked: forget it and carry on */
+        }
+      }
+
+      function recall(key) {
+        try {
+          return localStorage.getItem(PREFIX + key);
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function blocks() {
+        return document.querySelectorAll("details.category-details");
+      }
+
+      function apply() {
+        blocks().forEach(function (block) {
+          var key = block.dataset.key;
+          var saved = recall(key);
+          if (saved === "1") {
+            block.open = true;
+          } else if (saved === "0") {
+            block.open = false;
+          }
+          if (block.dataset.bound === "1") return;
+          block.dataset.bound = "1";
+          block.addEventListener("toggle", function () {
+            remember(key, block.open);
+          });
+        });
+      }
+
+      function setAll(open) {
+        blocks().forEach(function (block) {
+          // Setting .open fires toggle, which is what records the choice.
+          block.open = open;
+        });
+      }
+
+      document.addEventListener("click", function (event) {
+        var target = event.target;
+        if (!target || !target.id) return;
+        if (target.id === "expand-all" || target.id === "collapse-all") {
+          event.preventDefault();
+          setAll(target.id === "expand-all");
+        }
+      });
+
+      // htmx replaces #course-detail wholesale, so the new blocks need the
+      // remembered state put back on them.
+      document.body.addEventListener("htmx:afterSwap", apply);
+      apply();
+    })();
+  </script>
+{% endblock %}

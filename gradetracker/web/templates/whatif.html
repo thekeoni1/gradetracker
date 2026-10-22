@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% block title %}What-if: {{ course.code }}{% endblock %}
+
+{#- A category's add-a-placeholder control. It is not a <form>: the sliders
+    sit inside #whatif-form and a form cannot nest, so this is a button that
+    posts from inside that form.
+
+    Which is why the category is in the URL and the two boxes are named after
+    it. htmx includes the whole enclosing form, so a plain name="possible"
+    would arrive five times over -- one per category on the page -- and the
+    server would take whichever came first. Named this way there is nothing
+    to disambiguate. hx-params then trims the post to the two fields it
+    needs, and typing stops its own input event, or every keystroke would
+    also recalculate the scenario above. -#}
+{% macro add_placeholder(group) %}
+  {% set name_field = "ph_name_%s" | format(group.category_id) %}
+  {% set possible_field = "ph_possible_%s" | format(group.category_id) %}
+  <div class="placeholder">
+    <div class="row">
+      <div>
+        <label for="{{ name_field }}">Name</label>
+        <input type="text" id="{{ name_field }}" name="{{ name_field }}"
+               value="{{ group.name }}" oninput="event.stopPropagation()">
+      </div>
+      <div>
+        <label for="{{ possible_field }}">Out of</label>
+        <input type="number" id="{{ possible_field }}" name="{{ possible_field }}"
+               value="100" min="0.01" step="0.01" style="width:90px"
+               oninput="event.stopPropagation()">
+      </div>
+      <button class="small add-placeholder" type="button"
+              hx-post="{{ url_for('whatif_placeholder', course_id=course.id, category_id=group.category_id) }}"
+              hx-params="{{ name_field }},{{ possible_field }}"
+              hx-target="body" hx-swap="outerHTML">Add placeholder</button>
+    </div>
+  </div>
+{% endmacro %}
+
+{% block content %}
+
+  <section class="card">
+    <h2>{{ course.code }} - what-if</h2>
+    <div class="sub">
+      Drag a slider and the grade updates. The maths runs on the server, so this
+      is the same engine the dashboard uses.
+    </div>
+    <div class="actions">
+      <a class="button" href="{{ url_for('course', course_id=course.id) }}">Back to course</a>
+      <a class="button" href="{{ url_for('whatif', course_id=course.id) }}">Reset</a>
+    </div>
+  </section>
+
+  {% if not items and not plannable %}
+    <div class="empty">
+      <p>Nothing left to guess at: every assignment already has a score.</p>
+    </div>
+  {% else %}
+    {% if not items %}
+      <div class="empty">
+        <p>
+          Nothing left to guess at: every assignment already has a score. For
+          anything still to come, add a placeholder to its category below.
+        </p>
+      </div>
+    {% endif %}
+    <form id="whatif-form"
+          hx-post="{{ url_for('whatif_calc', course_id=course.id) }}"
+          hx-trigger="input changed delay:200ms from:#whatif-form"
+          hx-target="#whatif-result"
+          hx-swap="innerHTML">
+      <section class="card">
+        <h3 style="margin-top:0">Ungraded items</h3>
+        {% for group in groups %}
+          {# group['items'], never group.items: on a dict that is the method. #}
+          {% if group['items'] %}
+            {% if group.category_id is none %}
+              {# Forty-six unmapped rows would otherwise push every category
+                 that counts below the fold. In points mode they do count, so
+                 the block starts open there. #}
+              <details class="unmapped-group"{% if not weighted %} open{% endif %}>
+                <summary>
+                  <strong>Unmapped</strong>
+                  <span class="sub">
+                    {{ group['items'] | length }} items &middot;
+                    {{ "not counted in weighted mode" if weighted else "counted in points mode" }}
+                  </span>
+                </summary>
+            {% endif %}
+            <div class="category-group">
+              <div class="row" style="justify-content:space-between;align-items:center">
+                {% if group.category_id is not none %}
+                  <h4 style="margin:12px 0 4px">
+                    {{ group.name }}
+                    {% if group.weight is not none %}
+                      <span class="sub">({{ group.weight | num }}%)</span>
+                    {% endif %}
+                  </h4>
+                {% endif %}
+                <div class="row" style="align-items:center;gap:6px">
+                  <label class="sub" for="set-all-{{ loop.index }}">Set all to</label>
+                  <input type="number" class="set-all" id="set-all-{{ loop.index }}"
+                         min="0" max="100" step="1" placeholder="%" style="width:80px"
+                         aria-label="Set all {{ group.name }} items to a percent">
+                  <button class="small set-all-button" type="button">Set all</button>
+                </div>
+              </div>
+              {% for item in group['items'] %}
+                {% set value = preset.get(item.id, "") %}
+                <div class="slider-row">
+                  <div>
+                    {{ item.name }}
+                    {%- if item.manual %} <span class="badge">by hand</span>{% endif %}
+                    <div class="sub">
+                      {{ item.source }} &middot; out of {{ item.possible | num }}
+                      &middot; {{ item.status }}
+                      {%- if item.manual %}
+                        &middot;
+                        {# return_to in the query string, not a field: this
+                           button is inside #whatif-form too. #}
+                        <button type="button" class="remove-placeholder"
+                                hx-post="{{ url_for('delete_assignment', assignment_id=item.id, return_to='whatif') }}"
+                                hx-params="none"
+                                hx-target="body" hx-swap="outerHTML"
+                                aria-label="Remove {{ item.name }}">remove</button>
+                      {%- endif %}
+                    </div>
+                  </div>
+                  <input type="range" min="0" max="{{ item.possible | num }}" step="0.5"
+                         value="{{ value if value != "" else 0 }}"
+                         oninput="this.form.querySelector('[name=score_{{ item.id }}]').value = this.value"
+                         aria-label="{{ item.name }} slider">
+                  <input type="number" name="score_{{ item.id }}" min="0" step="0.5"
+                         max="{{ item.possible | num }}" value="{{ value }}"
+                         placeholder="--"
+                         oninput="this.closest('.slider-row').querySelector('[type=range]').value = this.value"
+                         aria-label="{{ item.name }} score">
+                </div>
+              {% endfor %}
+              {% if group.category_id is not none %}
+                {# Quiet here: a second midterm that has not been posted yet is
+                   worth planning for, but this is not what the page is for. #}
+                <details class="placeholder-toggle">
+                  <summary>Something else coming in {{ group.name }}?</summary>
+                  {{ add_placeholder(group) }}
+                </details>
+              {% endif %}
+            </div>
+            {% if group.category_id is none %}</details>{% endif %}
+          {% elif group.category_id is not none %}
+            {# Nothing here to guess at. The category still counts towards the
+               grade and can still take an item nobody has posted yet, so it
+               stays on the page -- closed, because there is nothing to read. #}
+            <details class="empty-category">
+              <summary>
+                <strong>{{ group.name }}</strong>
+                {% if group.weight is not none %}
+                  <span class="sub">({{ group.weight | num }}%)</span>
+                {% endif %}
+                <span class="sub">
+                  &middot;
+                  {%- if group.posted %}
+                    all {{ group.posted }} scored
+                  {%- else %}
+                    nothing posted yet
+                  {%- endif %}
+                </span>
+              </summary>
+              <p class="sub">
+                {% if group.posted %}
+                  Everything in {{ group.name }} is marked. If more is coming,
+                  add a placeholder and
+                {% else %}
+                  Neither platform has an assignment in {{ group.name }}. Add a
+                  placeholder and
+                {% endif %}
+                it gets a slider like everything else: an ordinary by-hand item
+                that sync leaves alone, removable from here or from the course
+                page.
+              </p>
+              {{ add_placeholder(group) }}
+            </details>
+          {% endif %}
+        {% endfor %}
+        <p class="sub" style="margin-top:10px">
+          A blank box means "still unknown", so that item is left out rather than
+          counted as a zero.
+        </p>
+      </section>
+
+      {% if items %}
+        <section class="card">
+          <h3 style="margin-top:0">Save this as a scenario</h3>
+          <div class="row">
+            <div>
+              <label for="scenario-name">Name</label>
+              <input type="text" id="scenario-name" name="name" value="{{ preset_name }}"
+                     placeholder="ace the final">
+            </div>
+            <button class="primary" type="submit"
+                    hx-post="{{ url_for('create_scenario', course_id=course.id) }}"
+                    hx-target="body" hx-swap="outerHTML">Save scenario</button>
+          </div>
+        </section>
+      {% endif %}
+    </form>
+
+    <div id="whatif-result">
+      {% include "partials/whatif_result.html" with context %}
+    </div>
+
+    <script>
+      // "Set all to 85%" fills one category's boxes. The last box we touch
+      // gets a real bubbling input event, exactly as typing in it would, so
+      // the form's existing hx-trigger recalculates once.
+      document.querySelectorAll(".set-all-button").forEach(function (button) {
+        button.addEventListener("click", function () {
+          var group = button.closest(".category-group");
+          if (!group) return;
+          var box = group.querySelector(".set-all");
+          var percent = parseFloat(box ? box.value : "");
+          if (isNaN(percent)) return;
+
+          var last = null;
+          group.querySelectorAll(".slider-row").forEach(function (row) {
+            var number = row.querySelector('input[type=number][name^="score_"]');
+            var slider = row.querySelector("input[type=range]");
+            if (!number) return;
+            var possible = parseFloat(number.max);
+            if (isNaN(possible)) return;
+            // Round to the box's own step, or the browser marks it invalid.
+            var step = parseFloat(number.step) || 0.5;
+            var value = Math.round((possible * percent) / 100 / step) * step;
+            value = Math.min(Math.max(value, 0), possible);
+            value = parseFloat(value.toFixed(4));
+            number.value = value;
+            if (slider) slider.value = value;
+            last = number;
+          });
+          if (last) last.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+      });
+    </script>
+  {% endif %}
+
+  <section class="card">
+    <h3 style="margin-top:0">Saved scenarios</h3>
+    {% if scenarios %}
+      <table>
+        <thead><tr><th>Name</th><th>Items</th><th>Saved</th><th></th></tr></thead>
+        <tbody>
+          {% for scenario in scenarios %}
+            <tr>
+              <td><a href="{{ url_for('load_scenario', course_id=course.id, scenario_id=scenario.id) }}">{{ scenario.name }}</a></td>
+              <td>{{ scenario.overrides | length }}</td>
+              <td>{{ (scenario.created_at or "")[:10] }}</td>
+              <td>
+                <form method="post" action="{{ url_for('remove_scenario', course_id=course.id, scenario_id=scenario.id) }}">
+                  <button class="small" type="submit">delete</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="sub">None yet. Fill in some scores above and save them a name.</p>
+    {% endif %}
+  </section>
+
+{% endblock %}

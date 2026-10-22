@@ -1,0 +1,70 @@
+{
+  "results": [
+    {
+      "userId": "_8675_1",
+      "columnId": "_14001_1",
+      "status": "Graded",
+      "displayGrade": { "scaleType": "Score", "score": 18.0, "possible": 20.0 },
+      "score": 18.0,
+      "text": "18",
+      "exempt": false,
+      "feedback": "",
+      "changeIndex": 10401,
+      "lastRelevantDate": "2026-09-17T15:22:00.000Z"
+    },
+    {
+      "userId": "_8675_1",
+      "columnId": "_14002_1",
+      "status": "Graded",
+      "displayGrade": { "scaleType": "Score", "score": 19.0, "possible": 20.0 },
+      "score": 19.0,
+      "text": "19",
+      "exempt": false,
+      "feedback": "Nice work on part (c).",
+      "changeIndex": 10477,
+      "lastRelevantDate": "2026-10-01T19:04:00.000Z"
+    },
+    {
+      "userId": "_8675_1",
+      "columnId": "_14003_1",
+      "status": "Graded",
+      "displayGrade": { "scaleType": "Score", "possible": 10.0 },
+      "exempt": true,
+      "feedback": "Excused: travel for conference.",
+      "changeIndex": 10488,
+      "lastRelevantDate": "2026-09-19T12:00:00.000Z"
+    },
+    {
+      "userId": "_8675_1",
+      "columnId": "_14004_1",
+      "status": "NeedsGrading",
+      "displayGrade": { "scaleType": "Score", "possible": 100.0 },
+      "exempt": false,
+      "feedback": "",
+      "changeIndex": 10502
+    },
+    {
+      "userId": "_8675_1",
+      "columnId": "_14005_1",
+      "status": "Graded",
+      "displayGrade": { "scaleType": "Score", "score": 45.0, "possible": 50.0 },
+      "score": 45.0,
+      "text": "45",
+      "exempt": false,
+      "feedback": "",
+      "changeIndex": 10510,
+      "lastRelevantDate": "2026-10-18T22:10:00.000Z"
+    },
+    {
+      "userId": "_8675_1",
+      "columnId": "_14006_1",
+      "status": "Graded",
+      "displayGrade": { "scaleType": "Score", "score": 91.3, "possible": 100.0 },
+      "score": 91.3,
+      "text": "91.3",
+      "exempt": false,
+      "feedback": "",
+      "changeIndex": 10511
+    }
+  ]
+}

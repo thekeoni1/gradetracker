@@ -1,0 +1,39 @@
+{% set declared = total if total is defined else draft.weight_total() %}
+{% set current_mode = mode if mode is defined else draft.mode %}
+<section class="card">
+  {% if current_mode == "weighted" %}
+    <p>
+      Weights total
+      <strong>{{ declared | num }}%</strong>
+      {% if declared and (declared - 100) | abs > 0.01 %}
+        <span class="badge warn">not 100%</span>
+      {% elif declared %}
+        <span class="badge ok">100%</span>
+      {% endif %}
+    </p>
+  {% endif %}
+
+  {% set blocking = warnings | selectattr("blocking") | list %}
+  {% set advisory = warnings | rejectattr("blocking") | list %}
+
+  {% if blocking %}
+    <ul class="warnings blocking">
+      {% for warning in blocking %}
+        <li><strong>{{ warning.field }}</strong>: {{ warning.message }}</li>
+      {% endfor %}
+    </ul>
+    <p class="sub">These cannot be saved: the rules would contradict themselves.</p>
+  {% endif %}
+
+  {% if advisory %}
+    <ul class="warnings">
+      {% for warning in advisory %}
+        <li><strong>{{ warning.field }}</strong>: {{ warning.message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if not warnings %}
+    <p class="sub">No problems found.</p>
+  {% endif %}
+</section>

@@ -1,0 +1,84 @@
+{% if not cards %}
+  <div class="empty">
+    <p><strong>No courses yet.</strong></p>
+    <p>
+      Run <code>gt sync</code> to fetch from Blackboard and Gradescope, then
+      <code>gt link</code> (or the <a href="{{ url_for('link_page') }}">Links page</a>)
+      to say which platform courses are the same course.
+    </p>
+  </div>
+{% else %}
+  {% for card in cards %}
+    {% set course = card.course %}
+    {% set current = card.current %}
+    <section class="card">
+      <h2><a href="{{ url_for('course', course_id=course.id) }}">{{ course.code }}</a></h2>
+      <div class="sub">{{ course.name or "" }}</div>
+
+      <div class="grades">
+        <div class="grade">
+          <div class="label">Current</div>
+          <div class="big">{{ current.percent | pct }}</div>
+          <div class="sub">{{ current.letter or "--" }}</div>
+        </div>
+        <div class="grade">
+          <div class="label">Projected</div>
+          <div class="big">{{ card.projected.percent | pct }}</div>
+          <div class="sub">{{ card.projected.letter or "--" }}</div>
+        </div>
+      </div>
+
+      <div class="badges">
+        {% if card.rules_status == "confirmed" %}
+          <span class="badge ok">rules confirmed</span>
+        {% elif card.rules_status == "outdated" %}
+          <span class="badge warn">rules may be outdated</span>
+        {% elif card.rules_status == "draft" %}
+          <span class="badge warn">rules not confirmed</span>
+        {% else %}
+          <span class="badge bad">unconfirmed rules</span>
+        {% endif %}
+        <span class="badge">{{ current.mode }} mode</span>
+        {% if current.duplicate_pairs %}
+          <a class="badge warn" href="{{ url_for('course', course_id=course.id) }}">
+            {{ current.duplicate_pairs | length }} possible duplicates
+          </a>
+        {% endif %}
+        {% if card.stale %}
+          <span class="badge warn">stale: synced {{ card.last_seen_ago }}</span>
+        {% else %}
+          <span class="badge">synced {{ card.last_seen_ago }}</span>
+        {% endif %}
+        {% for source in card.sources %}
+          <span class="badge">{{ source.source }} {{ source.ago }}</span>
+        {% endfor %}
+      </div>
+
+      {% set notes = [] %}
+      {% if card.rules_status == "none" %}
+        {% set _ = notes.append("No confirmed grading rules: this uses points mode and the standard scale.") %}
+      {% endif %}
+      {# No line for unmapped items here: the engine warning below already
+         counts them, and the card said it twice. #}
+      {% for source in card.needs_reconnect %}
+        {% set _ = notes.append(source ~ " needs reconnecting, so its grades may be out of date.") %}
+      {% endfor %}
+      {% for warning in current.warnings %}
+        {% set _ = notes.append(warning) %}
+      {% endfor %}
+
+      {% if notes %}
+        <ul class="warnings">
+          {% for note in notes %}<li>{{ note }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+
+      <div class="actions">
+        <a class="button" href="{{ url_for('course', course_id=course.id) }}">Open</a>
+        <a class="button" href="{{ url_for('whatif', course_id=course.id) }}">What-if</a>
+        <a class="button" href="{{ url_for('need', course_id=course.id) }}">What do I need</a>
+        <a class="button" href="{{ url_for('rules_form', course_id=course.id) }}">Rules</a>
+      </div>
+    </section>
+  {% endfor %}
+{% endif %}

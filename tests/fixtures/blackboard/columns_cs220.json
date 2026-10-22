@@ -1,0 +1,103 @@
+{
+  "results": [
+    {
+      "id": "_15001_1",
+      "externalId": "lab1",
+      "name": "Lab 1: Linked Lists",
+      "description": "",
+      "externalGrade": true,
+      "created": "2026-09-02T12:00:00.000Z",
+      "score": { "possible": 25.0 },
+      "availability": { "available": "Yes" },
+      "grading": {
+        "type": "Attempts",
+        "due": "2026-09-12T03:59:00.000Z",
+        "attemptsAllowed": 2,
+        "scoringModel": "Last",
+        "anonymousGrading": { "type": "None" }
+      }
+    },
+    {
+      "id": "_15002_1",
+      "externalId": "lab2",
+      "name": "Lab 2: Hash Tables",
+      "description": "",
+      "externalGrade": true,
+      "created": "2026-09-02T12:00:00.000Z",
+      "score": { "possible": 25.0 },
+      "availability": { "available": "Yes" },
+      "grading": {
+        "type": "Attempts",
+        "due": "2026-09-26T03:59:00.000Z",
+        "attemptsAllowed": 2,
+        "scoringModel": "Last",
+        "anonymousGrading": { "type": "None" }
+      }
+    },
+    {
+      "id": "_15003_1",
+      "externalId": "lab3",
+      "name": "Lab 3: Balanced Trees",
+      "description": "",
+      "externalGrade": true,
+      "created": "2026-09-02T12:00:00.000Z",
+      "score": { "possible": 25.0 },
+      "availability": { "available": "Yes" },
+      "grading": {
+        "type": "Attempts",
+        "due": "2026-10-24T03:59:00.000Z",
+        "attemptsAllowed": 2,
+        "scoringModel": "Last",
+        "anonymousGrading": { "type": "None" }
+      }
+    },
+    {
+      "id": "_15004_1",
+      "externalId": "exam1",
+      "name": "Exam 1",
+      "description": "",
+      "externalGrade": true,
+      "created": "2026-09-02T12:00:00.000Z",
+      "score": { "possible": 100.0 },
+      "availability": { "available": "Yes" },
+      "grading": {
+        "type": "Manual",
+        "due": "2026-10-08T03:59:00.000Z",
+        "attemptsAllowed": 1,
+        "scoringModel": "Last",
+        "anonymousGrading": { "type": "None" }
+      }
+    },
+    {
+      "id": "_15005_1",
+      "externalId": "project",
+      "name": "Final Project",
+      "description": "Group of two.",
+      "externalGrade": true,
+      "created": "2026-09-02T12:00:00.000Z",
+      "score": { "possible": 150.0 },
+      "availability": { "available": "Yes" },
+      "grading": {
+        "type": "Attempts",
+        "due": "2026-12-10T03:59:00.000Z",
+        "attemptsAllowed": 1,
+        "scoringModel": "Last",
+        "anonymousGrading": { "type": "None" }
+      }
+    },
+    {
+      "id": "_15006_1",
+      "externalId": "",
+      "name": "Total",
+      "description": "",
+      "externalGrade": false,
+      "created": "2026-08-25T12:00:00.000Z",
+      "score": { "possible": 325.0 },
+      "availability": { "available": "Yes" },
+      "grading": {
+        "type": "Calculated",
+        "anonymousGrading": { "type": "None" }
+      }
+    }
+  ]
+}

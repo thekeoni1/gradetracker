@@ -1,0 +1,17 @@
+{
+  "id": "_8675_1",
+  "uuid": "3f9a1c7e4b2d4e8f9a1c7e4b2d4e8f9a",
+  "externalId": "sstudent",
+  "userName": "sstudent",
+  "studentId": "0000001",
+  "name": {
+    "given": "Sam",
+    "family": "Student"
+  },
+  "contact": {
+    "email": "sstudent@example.edu"
+  },
+  "availability": {
+    "available": "Yes"
+  }
+}

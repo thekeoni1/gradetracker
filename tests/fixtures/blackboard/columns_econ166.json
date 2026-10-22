@@ -1,0 +1,102 @@
+{
+  "results": [
+    {
+      "id": "_14001_1",
+      "externalId": "ps1",
+      "name": "Problem Set 1",
+      "description": "",
+      "externalGrade": true,
+      "created": "2026-09-01T12:00:00.000Z",
+      "score": { "possible": 20.0 },
+      "availability": { "available": "Yes" },
+      "grading": {
+        "type": "Manual",
+        "due": "2026-09-15T03:59:00.000Z",
+        "attemptsAllowed": 1,
+        "scoringModel": "Last",
+        "anonymousGrading": { "type": "None" }
+      }
+    },
+    {
+      "id": "_14002_1",
+      "externalId": "ps2",
+      "name": "Problem Set 2",
+      "description": "",
+      "externalGrade": true,
+      "created": "2026-09-01T12:00:00.000Z",
+      "score": { "possible": 20.0 },
+      "availability": { "available": "Yes" },
+      "grading": {
+        "type": "Manual",
+        "due": "2026-09-29T03:59:00.000Z",
+        "attemptsAllowed": 1,
+        "scoringModel": "Last",
+        "anonymousGrading": { "type": "None" }
+      }
+    },
+    {
+      "id": "_14003_1",
+      "externalId": "quiz1",
+      "name": "Quiz 1",
+      "description": "",
+      "externalGrade": true,
+      "created": "2026-09-05T12:00:00.000Z",
+      "score": { "possible": 10.0 },
+      "availability": { "available": "Yes" },
+      "grading": {
+        "type": "Manual",
+        "due": "2026-09-18T03:59:00.000Z",
+        "attemptsAllowed": 1,
+        "scoringModel": "Last",
+        "anonymousGrading": { "type": "None" }
+      }
+    },
+    {
+      "id": "_14004_1",
+      "externalId": "midterm",
+      "name": "Midterm Exam",
+      "description": "In class, closed book.",
+      "externalGrade": true,
+      "created": "2026-09-05T12:00:00.000Z",
+      "score": { "possible": 100.0 },
+      "availability": { "available": "Yes" },
+      "grading": {
+        "type": "Manual",
+        "due": "2026-10-22T03:59:00.000Z",
+        "attemptsAllowed": 1,
+        "scoringModel": "Last",
+        "anonymousGrading": { "type": "None" }
+      }
+    },
+    {
+      "id": "_14005_1",
+      "externalId": "participation",
+      "name": "Participation",
+      "description": "",
+      "externalGrade": true,
+      "created": "2026-09-01T12:00:00.000Z",
+      "score": { "possible": 50.0 },
+      "availability": { "available": "Yes" },
+      "grading": {
+        "type": "Manual",
+        "attemptsAllowed": 1,
+        "scoringModel": "Last",
+        "anonymousGrading": { "type": "None" }
+      }
+    },
+    {
+      "id": "_14006_1",
+      "externalId": "",
+      "name": "Weighted Total",
+      "description": "",
+      "externalGrade": false,
+      "created": "2026-08-25T12:00:00.000Z",
+      "score": { "possible": 100.0 },
+      "availability": { "available": "Yes" },
+      "grading": {
+        "type": "Calculated",
+        "anonymousGrading": { "type": "None" }
+      }
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{# "already running" must be checked before "running", or a refused second
+   click would render as a fresh poll and look like it started. #}
+{% if started is defined and started is sameas false %}
+  <div class="card"><strong>A sync is already running.</strong></div>
+{% elif job.state == "running" %}
+  <div class="card" hx-get="{{ url_for('sync_status') }}"
+       hx-trigger="load delay:2s" hx-swap="outerHTML" hx-target="this">
+    <strong>Syncing...</strong>
+    <div class="sub">This page updates itself when it finishes.</div>
+  </div>
+{% elif job.state == "error" %}
+  <div class="card">
+    <ul class="warnings blocking"><li>Sync failed: {{ job.error }}</li></ul>
+  </div>
+  {% if cards %}
+    <div hx-swap-oob="innerHTML:#cards">{% include "partials/course_cards.html" with context %}</div>
+  {% endif %}
+{% elif job.state == "done" %}
+  <div class="card">
+    <strong>Sync finished.</strong>
+    {% for line in job.lines %}<div class="sub">{{ line }}</div>{% endfor %}
+  </div>
+  {% if cards %}
+    <div hx-swap-oob="innerHTML:#cards">{% include "partials/course_cards.html" with context %}</div>
+  {% endif %}
+{% endif %}

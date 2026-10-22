@@ -1,0 +1,7 @@
+{% if ok %}
+  <ul class="warnings done">
+    <li>{{ message }}{% if email %} ({{ email }}){% endif %}</li>
+  </ul>
+{% elif message %}
+  <ul class="warnings blocking"><li>{{ message }}</li></ul>
+{% endif %}

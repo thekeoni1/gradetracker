@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Grade Tracker{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  {# htmx 2.0.4, vendored so the app works with no network. #}
+  <script src="{{ url_for('static', filename='htmx.min.js') }}" defer></script>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <h1><a href="{{ url_for('dashboard') }}" style="text-decoration:none;color:inherit">Grade Tracker</a></h1>
+      <nav>
+        <a href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('link_page') }}">Links</a>
+        <a href="{{ url_for('connections') }}">Connections</a>
+      </nav>
+    </div>
+  </header>
+  <main class="wrap">
+    {# Something the app did that the user did not ask for in those words,
+       said on the page they land on rather than in a log. #}
+    {% with notices = get_flashed_messages() %}
+      {% if notices %}
+        <ul class="warnings">
+          {% for notice in notices %}<li>{{ notice }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

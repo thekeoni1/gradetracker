@@ -1,0 +1,32 @@
+[
+  {
+    "assignment_id": "4200001",
+    "name": "Lab 1: Linked Lists",
+    "release_date": "2026-09-02T12:00:00-04:00",
+    "due_date": "2026-09-12T03:59:00-04:00",
+    "late_due_date": null,
+    "submissions_status": "Submitted",
+    "grade": null,
+    "max_grade": null
+  },
+  {
+    "assignment_id": "4200002",
+    "name": "Lab 2: Hash Tables",
+    "release_date": "2026-09-12T12:00:00-04:00",
+    "due_date": "2026-09-26T03:59:00-04:00",
+    "late_due_date": null,
+    "submissions_status": "Submitted",
+    "grade": null,
+    "max_grade": null
+  },
+  {
+    "assignment_id": "4200003",
+    "name": "Lab 3: Balanced Trees",
+    "release_date": "2026-10-10T12:00:00-04:00",
+    "due_date": "2026-11-24T03:59:00-05:00",
+    "late_due_date": null,
+    "submissions_status": "No Submission",
+    "grade": null,
+    "max_grade": null
+  }
+]

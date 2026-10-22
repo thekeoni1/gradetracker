@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Rules: {{ course.code }}{% endblock %}
+{% block content %}
+
+  <section class="card">
+    <h2>{{ course.code }} - grading rules</h2>
+    <div class="badges">
+      {% if status == "confirmed" %}
+        <span class="badge ok">{{ summary }}</span>
+      {% elif status == "none" %}
+        <span class="badge bad">no rules saved yet</span>
+      {% else %}
+        <span class="badge warn">{{ summary }}</span>
+      {% endif %}
+    </div>
+    <p class="sub">
+      Typed in by hand and confirmed by you. Nothing here reaches the grade until
+      you save it, because one wrong weight corrupts every number after it.
+    </p>
+  </section>
+
+  <form id="rules-form" method="post" action="{{ url_for('rules_save', course_id=course.id) }}">
+
+    <section class="card">
+      <h3 style="margin-top:0">Mode</h3>
+      <label>
+        <input type="radio" name="mode" value="weighted" {% if draft.mode == "weighted" %}checked{% endif %}>
+        Weighted: each category carries a percentage of the grade
+      </label><br>
+      <label>
+        <input type="radio" name="mode" value="points" {% if draft.mode == "points" %}checked{% endif %}>
+        Points: total points earned over total points possible
+      </label>
+    </section>
+
+    <section class="card">
+      <h3 style="margin-top:0">Categories</h3>
+      <table id="category-rows">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th class="num">Weight %</th>
+            <th class="num">Drop lowest</th>
+            <th>Rank weights</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for category in draft.categories %}
+            <tr>
+              <td><input type="text" name="category_name" value="{{ category.name }}"></td>
+              <td class="num"><input type="number" name="category_weight" step="0.01"
+                                     value="{{ category.weight if category.weight is not none else "" }}" style="width:90px"></td>
+              <td class="num"><input type="number" name="category_drop" min="0"
+                                     value="{{ category.drop_lowest }}" style="width:70px"></td>
+              <td><input type="text" name="category_ranks" placeholder="e.g. 23, 17"
+                         value="{{ category.rank_weights | map('num') | join(', ') if category.rank_weights else "" }}"
+                         style="width:110px"></td>
+              <td><button class="small" type="button" onclick="this.closest('tr').remove()">remove</button></td>
+            </tr>
+          {% endfor %}
+          <tr>
+            <td><input type="text" name="category_name" value="" placeholder="e.g. Problem Sets"></td>
+            <td class="num"><input type="number" name="category_weight" step="0.01" value="" style="width:90px"></td>
+            <td class="num"><input type="number" name="category_drop" min="0" value="0" style="width:70px"></td>
+            <td><input type="text" name="category_ranks" value="" placeholder="e.g. 23, 17" style="width:110px"></td>
+            <td><button class="small" type="button" onclick="this.closest('tr').remove()">remove</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="actions">
+        <button class="small" type="button" id="add-row">Add a category</button>
+      </div>
+      <p class="sub" style="margin-top:10px">
+        Rank weights are for a category whose items count unequally: "the
+        midterm you score highest on is worth 23% and the other 17%" is
+        <code>23, 17</code>, highest first. They have to add up to the
+        category's own weight, and they replace a drop-lowest rule.
+      </p>
+    </section>
+
+    <section class="card">
+      <h3 style="margin-top:0">Letter cutoffs</h3>
+      <p class="sub">The minimum percentage for each letter. They must descend.</p>
+      <table>
+        <thead><tr><th>Letter</th><th class="num">Minimum %</th></tr></thead>
+        <tbody>
+          {% for cutoff in draft.cutoffs %}
+            <tr>
+              <td><input type="text" name="cutoff_letter" value="{{ cutoff.letter }}" style="width:70px"></td>
+              <td class="num"><input type="number" name="cutoff_min" step="0.1"
+                                     value="{{ cutoff.min_percent | num }}" style="width:90px"></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <div class="row">
+        <div>
+          <label for="bonus_percent">Flat bonus % on the final grade</label>
+          <input type="number" id="bonus_percent" name="bonus_percent" step="0.1"
+                 value="{{ draft.bonus_percent | num }}" style="width:100px">
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <label for="notes">Notes (curves, participation, anything non-mechanical)</label>
+        <textarea id="notes" name="notes">{{ draft.notes }}</textarea>
+      </div>
+    </section>
+
+    <div id="rules-warnings"
+         hx-post="{{ url_for('rules_validate', course_id=course.id) }}"
+         hx-trigger="change delay:200ms from:#rules-form"
+         hx-include="#rules-form"
+         hx-swap="innerHTML">
+      {% include "partials/rules_warnings.html" with context %}
+    </div>
+
+    <section class="card">
+      <div class="actions">
+        {% if confirm_needed %}
+          <button class="primary" type="submit" name="confirm_anyway" value="1">Confirm anyway</button>
+          <span class="sub">The notes above are advisory; saving is your call.</span>
+        {% else %}
+          <button class="primary" type="submit">Save and confirm</button>
+        {% endif %}
+        <a class="button" href="{{ url_for('course', course_id=course.id) }}">Cancel</a>
+      </div>
+    </section>
+  </form>
+
+  <script>
+    // The one piece of hand-written JS: clone the last category row.
+    document.getElementById("add-row").addEventListener("click", function () {
+      var body = document.querySelector("#category-rows tbody");
+      var row = body.rows[body.rows.length - 1].cloneNode(true);
+      row.querySelectorAll("input").forEach(function (input) {
+        input.value = input.name === "category_drop" ? "0" : "";
+      });
+      body.appendChild(row);
+    });
+  </script>
+
+{% endblock %}

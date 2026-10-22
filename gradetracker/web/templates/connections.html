@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Connections{% endblock %}
+{% block content %}
+
+  <section class="card">
+    <h2 style="margin-top:0">Connections</h2>
+    <p class="sub">
+      Reading this page never logs in: the states below come from what is already
+      saved on disk. Only the buttons here authenticate.
+    </p>
+  </section>
+
+  {% for connection in connections %}
+    <section class="card">
+      <h3 style="margin-top:0">{{ connection.source }}</h3>
+      <div class="badges">
+        {% if connection.state == "connected" %}
+          <span class="badge ok">connected</span>
+        {% elif connection.state == "needs reconnect" %}
+          <span class="badge bad">needs reconnect</span>
+        {% elif connection.state == "not configured" %}
+          <span class="badge warn">not configured</span>
+        {% else %}
+          <span class="badge warn">{{ connection.state }}</span>
+        {% endif %}
+        {% if connection.identity %}<span class="badge">{{ connection.identity }}</span>{% endif %}
+      </div>
+
+      <table>
+        <tbody>
+          <tr><th>Last successful sync</th><td>{{ connection.last_success_ago }}</td></tr>
+          {% if connection.last_login_at %}
+            <tr><th>Logged in</th><td>{{ connection.session_age }}</td></tr>
+          {% endif %}
+          {% if connection.last_run_status %}
+            <tr><th>Last attempt</th><td>{{ connection.last_run_status }}</td></tr>
+          {% endif %}
+          {% if connection.last_error %}
+            <tr>
+              <th>Last error</th>
+              <td class="sub">{{ connection.last_error }}</td>
+            </tr>
+            {% if connection.last_run_raw_path %}
+              <tr>
+                <th>Raw dump</th>
+                <td class="sub"><code>{{ connection.last_run_raw_path }}</code></td>
+              </tr>
+            {% endif %}
+          {% elif connection.last_run_message %}
+            <tr><th>Detail</th><td class="sub">{{ connection.last_run_message }}</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+
+      {% set source_spans = spans.get(connection.source) if spans else none %}
+      {% if source_spans %}
+        <h3>How long logins last</h3>
+        <p class="sub">
+          {% if averages and averages.get(connection.source) %}
+            Average completed session:
+            <strong>{{ "%.1f"|format(averages[connection.source].total_seconds() / 3600) }} hours</strong>
+            over {{ source_spans | selectattr("duration") | list | length }} session(s).
+            These are the numbers for the OAuth request: an official integration
+            would not expire like this.
+          {% else %}
+            No completed session yet, so there is nothing to average.
+          {% endif %}
+        </p>
+        <table>
+          <thead><tr><th>Logged in</th><th>Expired</th><th class="num">Lasted</th></tr></thead>
+          <tbody>
+            {% for span in source_spans %}
+              <tr>
+                <td class="sub">{{ (span.logged_in_at or "")[:16] | replace("T", " ") }}</td>
+                <td class="sub">
+                  {% if span.open %}<span class="badge ok">still valid</span>
+                  {% else %}{{ (span.expired_at or "")[:16] | replace("T", " ") }}{% endif %}
+                </td>
+                <td class="num">
+                  {% if span.hours is not none %}{{ "%.1f"|format(span.hours) }} h{% else %}--{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+
+      {% if connection.source == "blackboard" %}
+        <div class="actions">
+          <button class="primary"
+                  hx-post="{{ url_for('reconnect_blackboard') }}"
+                  hx-target="#reconnect-status" hx-swap="innerHTML">Reconnect</button>
+          <span class="sub">Opens a real browser window for Hamilton SSO and Duo.</span>
+        </div>
+        <div id="reconnect-status">
+          {% include "partials/reconnect_status.html" with context %}
+        </div>
+      {% else %}
+        <div style="margin-top:10px">
+          <form hx-post="{{ url_for('save_gradescope') }}"
+                hx-target="#gradescope-result" hx-swap="innerHTML">
+            <div class="row">
+              <div>
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email"
+                       value="{{ connection.identity or "" }}" autocomplete="username">
+              </div>
+              <div>
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password"
+                       autocomplete="current-password">
+              </div>
+              <button class="primary" type="submit">Verify and save</button>
+            </div>
+            <p class="sub" style="margin-top:6px">
+              Checked with one real login, then stored in the Windows Credential
+              Manager. It is never written to a file or shown back to you.
+            </p>
+          </form>
+          <div id="gradescope-result"></div>
+        </div>
+      {% endif %}
+    </section>
+  {% endfor %}
+
+  <section class="card">
+    <h3 style="margin-top:0">Course links</h3>
+    <p class="sub">Which platform courses feed which course you take.</p>
+    <div class="actions">
+      <a class="button" href="{{ url_for('link_page') }}">Open the links page</a>
+    </div>
+  </section>
+
+{% endblock %}

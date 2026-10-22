@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gradetracker"
+version = "0.1.0"
+description = "Local grade tracker that syncs Blackboard and Gradescope and applies syllabus grading rules"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = [
+    "playwright",
+    "requests",
+    "gradescopeapi==1.8.1",
+    "keyring",
+    "typer",
+    "pydantic>=2",
+    "flask",
+    "apscheduler",
+    "beautifulsoup4",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+gt = "gradetracker.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["gradetracker*"]
+
+[tool.setuptools.package-data]
+gradetracker = ["storage/*.sql", "web/templates/*", "web/static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,526 @@
+/* One stylesheet, no build step, no CDN, no web fonts: the app has to work
+   with the network unplugged.
+
+   The look is a registrar's ledger rather than a dashboard of tiles. Figures
+   are the loudest thing on the page, set in tabular numerals so a column of
+   them lines up; everything else -- rules, labels, badges -- stays quiet and
+   exists to say where a figure came from and how far to trust it. Colour is
+   spent only on that: green, ochre and red are printed-ink tones, not UI
+   candy, and nothing else on the page is saturated. */
+
+:root {
+  color-scheme: light;
+
+  --ink: #17283f;          /* navy, the one dark tone; never pure black */
+  --muted: #5e6675;
+  --line: #d9d6cc;         /* warm hairline, the ruled-paper line */
+  --line-strong: #bdb8aa;
+  --bg: #f3f1ea;           /* the page is paper */
+  --card: #fbfaf6;         /* a sheet laid on it */
+  --chip: #eceade;
+  --accent: #1d3a61;
+  --accent-hover: #2b528a;
+
+  --good: #2e6a4f;
+  --good-line: #b9d3c3;
+  --good-bg: #edf5f0;
+  --warn: #8a5a10;
+  --warn-line: #ddc795;
+  --warn-bg: #faf2e0;
+  --bad: #9e2b25;
+  --bad-line: #e0b8b5;
+  --bad-bg: #fbeeed;
+
+  --bar: #dcd8cc;
+  --bar-fill: #3c6294;
+
+  /* 15px body, with a scale that only steps where a step means something. */
+  --t-small: 12.5px;
+  --t-sub: 13px;
+  --t-body: 15px;
+  --t-head: 17px;
+  --t-figure: 44px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --ink: #e8e5dd;
+    --muted: #9aa1ad;
+    --line: #2f3540;
+    --line-strong: #434a57;
+    --bg: #14171c;
+    --card: #1b1f26;
+    --chip: #262b34;
+    --accent: #9cbce8;
+    --accent-hover: #c2d6f2;
+
+    --good: #76c39b;
+    --good-line: #2f5744;
+    --good-bg: #1a2a23;
+    --warn: #d9a94f;
+    --warn-line: #5a4725;
+    --warn-bg: #2b2418;
+    --bad: #e59089;
+    --bad-line: #5d3330;
+    --bad-bg: #2b1d1c;
+
+    --bar: #2f3540;
+    --bar-fill: #5d8bc8;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  font-size: var(--t-body);
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+}
+
+a { color: var(--accent); text-underline-offset: 2px; }
+a:hover { color: var(--accent-hover); text-decoration: none; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.wrap {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 18px 16px;
+}
+
+/* --- header --- */
+
+header.top {
+  background: var(--card);
+  border-bottom: 1px solid var(--line-strong);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+header.top .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  align-items: baseline;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+header.top h1 {
+  font-size: var(--t-head);
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+header.top nav {
+  display: flex;
+  gap: 18px;
+  margin-left: auto;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+/* --- sheets --- */
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+
+.card h2 {
+  margin: 0 0 2px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.card h2 a { text-decoration: none; color: inherit; }
+.card h2 a:hover { color: var(--accent); }
+
+.sub { color: var(--muted); font-size: var(--t-sub); }
+
+h3 {
+  font-size: var(--t-head);
+  font-weight: 600;
+  margin: 22px 0 8px;
+  letter-spacing: -0.01em;
+}
+
+/* --- the figures, and the rule under them --- */
+
+.grades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 36px;
+  margin: 14px 0 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.grade .big {
+  font-size: var(--t-figure);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.grade .label {
+  font-size: var(--t-sub);
+  color: var(--muted);
+}
+
+.grade .sub { font-size: 14px; }
+
+/* --- badges and warnings --- */
+
+.badge {
+  display: inline-block;
+  font-size: var(--t-small);
+  line-height: 1.6;
+  padding: 1px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--chip);
+  color: var(--muted);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+a.badge:hover { border-color: var(--line-strong); color: var(--ink); }
+
+.badge.ok { color: var(--good); border-color: var(--good-line); background: var(--good-bg); }
+.badge.warn { color: var(--warn); border-color: var(--warn-line); background: var(--warn-bg); }
+.badge.bad { color: var(--bad); border-color: var(--bad-line); background: var(--bad-bg); }
+
+.badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+
+ul.warnings {
+  margin: 12px 0 0;
+  padding: 10px 14px 10px 28px;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  border-left-width: 3px;
+  border-radius: 4px;
+  font-size: var(--t-sub);
+  color: var(--warn);
+}
+
+/* The same box reporting that something worked, e.g. credentials accepted. */
+ul.warnings.done {
+  background: var(--good-bg);
+  border-color: var(--good-line);
+  color: var(--good);
+}
+
+ul.warnings.blocking {
+  background: var(--bad-bg);
+  border-color: var(--bad-line);
+  color: var(--bad);
+}
+
+ul.warnings li + li { margin-top: 5px; }
+
+/* --- category bars --- */
+
+.bars { margin: 10px 0 2px; }
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) 1fr 130px;
+  gap: 14px;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.bar-row:last-child { border-bottom: 0; }
+
+.bar-track {
+  background: var(--bar);
+  border-radius: 2px;
+  height: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.bar-fill { background: var(--bar-fill); height: 100%; }
+
+.bar-row .right {
+  text-align: right;
+  color: var(--muted);
+  font-size: var(--t-sub);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- tables --- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+th, td {
+  text-align: left;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+th {
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom-color: var(--line-strong);
+  white-space: nowrap;
+}
+
+/* A score, a platform name or a date must never be broken across lines: half
+   of "blackboard" over two rows is harder to read than a narrower column. */
+td.num, th.num { text-align: right; }
+td.num, td.nowrap, th.nowrap { white-space: nowrap; }
+
+/* A category select would otherwise take whatever room the longest name
+   needs and squeeze every other column. */
+td select { max-width: 180px; }
+
+tbody tr:hover td { background: var(--chip); }
+
+tr.dropped td, tr.excluded td { color: var(--muted); }
+tr.dropped td:first-child::after { content: " (dropped)"; font-size: var(--t-small); }
+tr.excluded { text-decoration: line-through; }
+/* The row is struck through to say it does not count; a badge on it is a
+   label about the row, not part of it, so it stays readable. */
+tr.excluded .badge { text-decoration: none; }
+tr.duplicate td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+
+/* --- dashboard grid --- */
+
+#cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  /* start, not stretch: a quiet course should not grow to match a noisy one. */
+  align-items: start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+#cards > .card { margin-bottom: 0; }
+#cards .grades { gap: 8px 28px; }
+#cards .grade .big { font-size: 34px; }
+
+/* --- forms --- */
+
+input[type="text"], input[type="number"], input[type="email"],
+input[type="password"], select, textarea {
+  font: inherit;
+  padding: 5px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--card);
+  color: inherit;
+  max-width: 100%;
+}
+
+input[type="range"] { width: 100%; accent-color: var(--bar-fill); }
+
+textarea { width: 100%; min-height: 60px; }
+
+button, .button {
+  font: inherit;
+  padding: 5px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--card);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  display: inline-block;
+}
+
+button:hover, .button:hover { border-color: var(--accent); color: var(--accent); }
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--card);
+  font-weight: 500;
+}
+
+button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--card); }
+
+button.small { padding: 1px 8px; font-size: var(--t-sub); }
+
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.row label { display: block; font-size: var(--t-sub); color: var(--muted); }
+
+/* A settings line, not a form to fill in: it sits with the badges above it. */
+.preference { align-items: center; gap: 8px; margin: 0 0 4px; }
+.preference select { font-size: var(--t-sub); padding: 1px 6px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+fieldset {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+}
+
+legend { font-size: var(--t-sub); color: var(--muted); padding: 0 4px; }
+
+/* --- what-if sliders --- */
+
+.slider-row {
+  display: grid;
+  grid-template-columns: 1fr 180px 90px;
+  gap: 12px;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.category-group { margin-bottom: 14px; }
+.category-group h4 { font-size: 15px; font-weight: 600; }
+
+.result-box {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 16px 18px;
+}
+
+.result-box .grades { margin-top: 0; }
+.result-box h3:first-child { margin-top: 0; }
+
+.delta.up { color: var(--good); }
+.delta.down { color: var(--bad); }
+
+.empty {
+  background: var(--card);
+  border: 1px dashed var(--line-strong);
+  border-radius: 6px;
+  padding: 30px 20px;
+  text-align: center;
+  color: var(--muted);
+}
+
+code {
+  background: var(--chip);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: var(--t-sub);
+  overflow-wrap: anywhere;
+}
+
+.htmx-request { opacity: 0.55; }
+
+/* --- collapsible category lists --- */
+
+.category-details { border-top: 1px solid var(--line); }
+
+.category-details:first-of-type { border-top: 0; }
+
+.category-details > summary {
+  cursor: pointer;
+  padding: 9px 2px;
+  list-style-position: outside;
+}
+
+.category-details > summary:hover { color: var(--accent); }
+
+.category-details[open] > summary { border-bottom: 1px solid var(--line); }
+
+.category-details > summary .sub { margin-left: 8px; font-variant-numeric: tabular-nums; }
+
+.category-details table { margin-bottom: 10px; }
+
+.unmapped-group {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin-top: 12px;
+}
+
+.unmapped-group > summary { cursor: pointer; }
+.unmapped-group > summary:hover { color: var(--accent); }
+.unmapped-group[open] > summary { margin-bottom: 6px; }
+
+/* A category with nothing to guess at. Same frame as the unmapped block, so
+   the two closed things on this page read as the same kind of thing. */
+.empty-category {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin-top: 12px;
+}
+
+.empty-category > summary { cursor: pointer; }
+.empty-category > summary:hover { color: var(--accent); }
+.empty-category > summary .sub { margin-left: 4px; }
+.empty-category > p { margin: 10px 0 0; max-width: 62ch; }
+
+/* The same control inside a category that already has sliders: an offer, not
+   an invitation, so it stays a line of small text until it is wanted. */
+.placeholder-toggle > summary {
+  cursor: pointer;
+  font-size: var(--t-sub);
+  color: var(--muted);
+  padding: 8px 0 2px;
+}
+
+.placeholder-toggle > summary:hover { color: var(--accent); }
+
+.placeholder { padding: 4px 0 8px; }
+
+/* Second line of a slider row, where the row's real controls are the slider
+   and the box. A button shaped like those would outrank both. */
+.remove-placeholder {
+  font: inherit;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.remove-placeholder:hover { color: var(--bad); border-color: transparent; }
+
+/* --- phone --- */
+
+@media (max-width: 640px) {
+  :root { --t-figure: 32px; }
+  .wrap { padding: 14px 16px; }
+  .card { padding: 14px; }
+  #cards { grid-template-columns: 1fr; }
+  #cards .grade .big { font-size: 30px; }
+  .bar-row { grid-template-columns: 1fr; gap: 2px; padding: 8px 0; }
+  .bar-row .right { text-align: left; }
+  .slider-row { grid-template-columns: 1fr; }
+  .grades { gap: 14px 24px; }
+  /* A seven-column assignment table cannot fit a phone. It scrolls inside
+     its own sheet rather than dragging the whole page sideways. */
+  .card, .result-box { overflow-x: auto; }
+  table { font-size: var(--t-sub); }
+  th, td { padding: 5px 4px; }
+}

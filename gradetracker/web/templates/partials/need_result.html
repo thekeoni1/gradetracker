@@ -1,0 +1,113 @@
+<div class="result-box">
+  {% if result.status == "ok" %}
+    <div class="grades">
+      <div class="grade">
+        <div class="label">You need</div>
+        <div class="big">{{ "%.2f"|format(result.score_percent) }}%</div>
+        <div class="sub">
+          on {{ result.per_item | length }} item(s)
+          {%- if result.letter %} for a {{ result.letter }}{% endif %}
+          {%- if result.target_percent is not none %} ({{ result.target_percent | num }}%){% endif %}
+        </div>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Assignment</th><th class="num">Points needed</th></tr></thead>
+      <tbody>
+        {% for assignment_id, points in result.per_item.items() %}
+          <tr>
+            <td>{{ names.get(assignment_id, "#" ~ assignment_id) }}</td>
+            <td class="num">{{ "%.2f"|format(points) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if result.per_item | length > 1 %}
+      <p class="sub">The same percentage is assumed on each unknown item.</p>
+    {% endif %}
+
+  {% elif result.status == "locked_in" %}
+    <p><strong>Already locked in.</strong></p>
+    <p class="sub">
+      Even a zero on
+      {% if result.per_item %}those item(s){% else %}what is left{% endif %}
+      still reaches
+      {%- if result.letter %} a {{ result.letter }}{% else %} {{ result.target_percent | num }}%{% endif %}.
+    </p>
+    {% if result.message %}<p class="sub">{{ result.message }}</p>{% endif %}
+
+  {% elif result.status == "impossible" %}
+    <p><strong>Not reachable.</strong></p>
+    <p class="sub">
+      Even full marks on the items you chose falls short of
+      {%- if result.letter %} a {{ result.letter }}{% else %} {{ result.target_percent | num }}%{% endif %}.
+    </p>
+    {% if result.message %}<p class="sub">{{ result.message }}</p>{% endif %}
+
+  {% elif result.status == "not_counted" %}
+    <ul class="warnings">
+      <li>{{ result.message or "The item you chose cannot change this grade." }}</li>
+    </ul>
+
+  {% else %}
+    <p class="sub">{{ result.status }}</p>
+  {% endif %}
+
+  {% if by_category is defined and by_category and by_category.rows %}
+    <h3>By category</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th class="num">Weight</th>
+          <th class="num">So far</th>
+          <th class="num">Points left</th>
+          <th class="num">Points needed</th>
+          <th class="num">Needed %</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in by_category.rows %}
+          <tr>
+            <td>{{ row.name }}</td>
+            <td class="num">{{ (row.weight | num) ~ "%" if row.weight is not none else "--" }}</td>
+            <td class="num">
+              {% if row.result %}
+                {{ row.result.earned | num }} / {{ row.result.possible | num }}
+              {% else %}
+                --
+              {% endif %}
+            </td>
+            <td class="num">{{ row.points_left | num }}</td>
+            <td class="num">
+              {{ "%.2f"|format(row.points_needed) if row.points_needed is not none else "--" }}
+            </td>
+            <td class="num">
+              {{ "%.2f"|format(row.required.score_percent) ~ "%"
+                 if row.required.score_percent is not none else "--" }}
+            </td>
+            <td class="sub">
+              {% if row.required.status == "ok" %}
+                reachable
+              {% elif row.required.status == "locked_in" %}
+                locked in, even zeros reach it
+              {% elif row.required.status == "impossible" %}
+                not reachable with these items alone
+              {% else %}
+                {{ row.required.message or "cannot change this grade" }}
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="sub">
+      Each row assumes only that category's items are unknown and everything
+      else continues as it has been.
+    </p>
+    {% if by_category.unmapped_note %}
+      <ul class="warnings"><li>{{ by_category.unmapped_note }}</li></ul>
+    {% endif %}
+  {% endif %}
+</div>

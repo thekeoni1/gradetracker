@@ -1,0 +1,19 @@
+{% if started is defined and started is sameas false %}
+  <div class="card"><strong>A login window is already open.</strong></div>
+{% elif job.state == "running" %}
+  <div class="card" hx-get="{{ url_for('reconnect_status') }}"
+       hx-trigger="load delay:2s" hx-swap="outerHTML" hx-target="this">
+    <strong>Waiting for the login window...</strong>
+    <div class="sub">Finish signing in, including Duo. This updates itself.</div>
+  </div>
+{% elif job.state == "error" %}
+  <ul class="warnings blocking"><li>Reconnect failed: {{ job.error }}</li></ul>
+{% elif job.state == "done" %}
+  <div class="card">
+    <strong>Reconnect finished.</strong>
+    {% for line in job.lines %}<div class="sub">{{ line }}</div>{% endfor %}
+    <div class="sub">
+      <a href="{{ url_for('connections') }}">Refresh this page</a> to see the new state.
+    </div>
+  </div>
+{% endif %}

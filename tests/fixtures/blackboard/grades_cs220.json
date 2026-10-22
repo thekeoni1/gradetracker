@@ -1,0 +1,69 @@
+{
+  "results": [
+    {
+      "userId": "_8675_1",
+      "columnId": "_15001_1",
+      "status": "Graded",
+      "displayGrade": { "scaleType": "Score", "score": 24.0, "possible": 25.0 },
+      "score": 24.0,
+      "text": "24",
+      "exempt": false,
+      "feedback": "",
+      "changeIndex": 20311,
+      "lastRelevantDate": "2026-09-14T16:00:00.000Z"
+    },
+    {
+      "userId": "_8675_1",
+      "columnId": "_15002_1",
+      "status": "Graded",
+      "displayGrade": { "scaleType": "Score", "score": 22.0, "possible": 25.0 },
+      "score": 22.0,
+      "text": "22",
+      "exempt": false,
+      "feedback": "Watch your load factor.",
+      "changeIndex": 20388,
+      "lastRelevantDate": "2026-09-28T16:00:00.000Z"
+    },
+    {
+      "userId": "_8675_1",
+      "columnId": "_15003_1",
+      "status": "NeedsGrading",
+      "displayGrade": { "scaleType": "Score", "possible": 25.0 },
+      "exempt": false,
+      "feedback": "",
+      "changeIndex": 20401
+    },
+    {
+      "userId": "_8675_1",
+      "columnId": "_15004_1",
+      "status": "Graded",
+      "displayGrade": { "scaleType": "Score", "score": 88.0, "possible": 100.0 },
+      "score": 88.0,
+      "text": "88",
+      "exempt": false,
+      "feedback": "",
+      "changeIndex": 20450,
+      "lastRelevantDate": "2026-10-10T14:30:00.000Z"
+    },
+    {
+      "userId": "_8675_1",
+      "columnId": "_15005_1",
+      "status": "NeedsGrading",
+      "displayGrade": { "scaleType": "Score", "possible": 150.0 },
+      "exempt": false,
+      "feedback": "",
+      "changeIndex": 20455
+    },
+    {
+      "userId": "_8675_1",
+      "columnId": "_15006_1",
+      "status": "Graded",
+      "displayGrade": { "scaleType": "Score", "score": 134.0, "possible": 325.0 },
+      "score": 134.0,
+      "text": "134",
+      "exempt": false,
+      "feedback": "",
+      "changeIndex": 20456
+    }
+  ]
+}

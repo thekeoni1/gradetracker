@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Map: {{ course.code }}{% endblock %}
+{% block content %}
+
+  <section class="card">
+    <h2>{{ course.code }} - map assignments</h2>
+    <p class="sub">
+      An assignment with no category contributes nothing to a weighted grade, so
+      anything left here is quietly missing from your number.
+    </p>
+    <div class="actions">
+      <a class="button" href="{{ url_for('course', course_id=course.id) }}">Back to course</a>
+      <a class="button" href="{{ url_for('rules_form', course_id=course.id) }}">Edit rules</a>
+    </div>
+  </section>
+
+  {% if not categories %}
+    <div class="empty">
+      <p>No categories to map into yet.</p>
+      <p><a href="{{ url_for('rules_form', course_id=course.id) }}">Enter the grading rules first</a>.</p>
+    </div>
+  {% elif not unmapped %}
+    <div class="empty">
+      <p><strong>Everything is mapped.</strong></p>
+    </div>
+  {% else %}
+    <section class="card">
+      <form method="post" action="{{ url_for('map_accept_all', course_id=course.id) }}">
+        <div class="row">
+          <button class="primary" type="submit">Accept all suggestions</button>
+          <span class="sub">
+            Accepted suggestions stay unlocked, so a better category later can
+            still claim them.
+          </span>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      {# One form for the whole table: pick every row, then save once. #}
+      <form method="post" action="{{ url_for('map_save', course_id=course.id) }}">
+        <div class="row">
+          <label for="apply-all" class="sub">Set every row to</label>
+          <select id="apply-all">
+            <option value="">choose...</option>
+            {% for category in categories %}
+              <option value="{{ category.id }}">{{ category.name }}</option>
+            {% endfor %}
+          </select>
+          <button id="apply-all-button" type="button">Apply to all rows</button>
+          <span class="sub">
+            Fills the dropdowns below without saving, for a course where 29
+            codelets all belong in the same place.
+          </span>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Assignment</th>
+              <th class="num">Score</th>
+              <th>Status</th>
+              <th>Suggested</th>
+              <th>Set</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in unmapped %}
+              <tr>
+                <td>{{ row.name }} <span class="sub">({{ row.source }})</span></td>
+                <td class="num">{{ row.earned | num }}/{{ row.possible | num }}</td>
+                <td>{{ row.status }}</td>
+                <td>
+                  {% if row.suggested_category_name %}
+                    <span class="badge">{{ row.suggested_category_name }}</span>
+                  {% else %}
+                    <span class="sub">no suggestion</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <select name="category_{{ row.id }}">
+                    <option value="">choose...</option>
+                    {% for category in categories %}
+                      <option value="{{ category.id }}"
+                              {% if category.id == row.suggested_category_id %}selected{% endif %}>
+                        {{ category.name }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <div class="row" style="margin-top:10px">
+          <button class="primary" type="submit">Save selections</button>
+          <span class="sub">
+            Saving locks every row you set, so no sync and no rules change will
+            move it again. Rows left on "choose..." stay unmapped.
+          </span>
+        </div>
+      </form>
+    </section>
+
+    <script>
+      // Client-side only: fills the row dropdowns, saving nothing until submit.
+      document.getElementById("apply-all-button").addEventListener("click", function () {
+        var chosen = document.getElementById("apply-all").value;
+        var selects = document.querySelectorAll('select[name^="category_"]');
+        for (var index = 0; index < selects.length; index += 1) {
+          selects[index].value = chosen;
+        }
+      });
+    </script>
+  {% endif %}
+
+{% endblock %}

@@ -1,0 +1,61 @@
+{
+  "results": [
+    {
+      "id": "_41001_1",
+      "userId": "_8675_1",
+      "courseId": "_2100_1",
+      "dataSourceId": "_2_1",
+      "created": "2026-08-25T14:02:11.000Z",
+      "availability": {
+        "available": "Yes"
+      },
+      "courseRoleId": "Student",
+      "lastAccessed": "2026-10-19T18:41:02.000Z",
+      "course": {
+        "id": "_2100_1",
+        "courseId": "ECON-166-01-2026F",
+        "name": "ECON 166: Intermediate Microeconomics",
+        "termId": "_55_1",
+        "created": "2026-08-01T09:00:00.000Z",
+        "organization": false,
+        "ultraStatus": "Ultra",
+        "availability": {
+          "available": "Yes",
+          "duration": {
+            "type": "Term"
+          }
+        }
+      }
+    },
+    {
+      "id": "_41002_1",
+      "userId": "_8675_1",
+      "courseId": "_2101_1",
+      "dataSourceId": "_2_1",
+      "created": "2026-08-25T14:02:11.000Z",
+      "availability": {
+        "available": "Yes"
+      },
+      "courseRoleId": "Student",
+      "lastAccessed": "2026-10-20T11:15:44.000Z",
+      "course": {
+        "id": "_2101_1",
+        "courseId": "CS-220-02-2026F",
+        "name": "CS 220: Data Structures",
+        "termId": "_55_1",
+        "created": "2026-08-01T09:00:00.000Z",
+        "organization": false,
+        "ultraStatus": "Ultra",
+        "availability": {
+          "available": "Yes",
+          "duration": {
+            "type": "Term"
+          }
+        }
+      }
+    }
+  ],
+  "paging": {
+    "nextPage": "/learn/api/public/v1/users/_8675_1/courses?offset=2&expand=course"
+  }
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "assignment_id": "4100001",
+    "name": "Problem Set 1",
+    "release_date": "2026-09-01T12:00:00-04:00",
+    "due_date": "2026-09-15T03:59:00-04:00",
+    "late_due_date": null,
+    "submissions_status": "Submitted",
+    "grade": 18.0,
+    "max_grade": 20.0
+  },
+  {
+    "assignment_id": "4100002",
+    "name": "Problem Set 2",
+    "release_date": "2026-09-15T12:00:00-04:00",
+    "due_date": "2026-09-29T03:59:00-04:00",
+    "late_due_date": "2026-10-01T03:59:00-04:00",
+    "submissions_status": "Submitted",
+    "grade": 19.5,
+    "max_grade": 20.0
+  },
+  {
+    "assignment_id": "4100003",
+    "name": "Problem Set 3",
+    "release_date": "2026-09-29T12:00:00-04:00",
+    "due_date": "2026-10-13T03:59:00-04:00",
+    "late_due_date": null,
+    "submissions_status": "Submitted",
+    "grade": null,
+    "max_grade": null
+  },
+  {
+    "assignment_id": "4100004",
+    "name": "Problem Set 4",
+    "release_date": "2026-10-06T12:00:00-04:00",
+    "due_date": "2026-10-16T03:59:00-04:00",
+    "late_due_date": null,
+    "submissions_status": "No Submission",
+    "grade": null,
+    "max_grade": null
+  },
+  {
+    "assignment_id": "4100005",
+    "name": "Midterm Exam",
+    "release_date": "2026-10-20T12:00:00-04:00",
+    "due_date": "2026-11-05T03:59:00-05:00",
+    "late_due_date": null,
+    "submissions_status": "No Submission",
+    "grade": null,
+    "max_grade": null
+  }
+]

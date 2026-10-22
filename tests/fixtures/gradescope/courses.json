@@ -1,0 +1,38 @@
+{
+  "student": {
+    "812345": {
+      "name": "ECON 166",
+      "full_name": "Intermediate Microeconomics",
+      "semester": "Fall",
+      "year": "2026",
+      "num_grades_published": null,
+      "num_assignments": "6"
+    },
+    "812346": {
+      "name": "CS 220",
+      "full_name": "Data Structures",
+      "semester": "Fall",
+      "year": "2026",
+      "num_grades_published": null,
+      "num_assignments": "5"
+    },
+    "798001": {
+      "name": "MATH 113",
+      "full_name": "Calculus I",
+      "semester": "Spring",
+      "year": "2026",
+      "num_grades_published": null,
+      "num_assignments": "4"
+    }
+  },
+  "instructor": {
+    "655000": {
+      "name": "CS 110",
+      "full_name": "Intro to Computer Science",
+      "semester": "Fall",
+      "year": "2026",
+      "num_grades_published": null,
+      "num_assignments": "8"
+    }
+  }
+}

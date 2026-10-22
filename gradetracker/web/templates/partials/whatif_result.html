@@ -1,0 +1,72 @@
+{% set shown = scenario if scenario is defined else current %}
+<div class="result-box">
+  <div class="grades">
+    <div class="grade">
+      <div class="label">Current</div>
+      <div class="big">{{ current.percent | pct }}</div>
+      <div class="sub">{{ current.letter or "--" }}</div>
+    </div>
+    <div class="grade">
+      <div class="label">In this scenario</div>
+      <div class="big">{{ shown.percent | pct }}</div>
+      <div class="sub">{{ shown.letter or "--" }}</div>
+    </div>
+    <div class="grade">
+      <div class="label">Change</div>
+      {% if delta is defined and delta is not none %}
+        <div class="big delta {{ "up" if delta >= 0 else "down" }}">
+          {{ "+" if delta >= 0 else "" }}{{ "%.2f"|format(delta) }}
+        </div>
+      {% else %}
+        <div class="big">--</div>
+      {% endif %}
+      <div class="sub">
+        {% if count is defined and count %}
+          {{ count }} item(s) filled in
+        {% else %}
+          nothing filled in yet
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if category_rows is defined and category_rows %}
+    <h3>By category</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th class="num">Weight</th>
+          <th class="num">Current</th>
+          <th class="num">In this scenario</th>
+          <th>Filled in</th>
+          <th class="num">Points left blank</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in category_rows %}
+          <tr>
+            <td>{{ row.name }}</td>
+            <td class="num">{{ (row.weight | num) ~ "%" if row.weight is not none else "--" }}</td>
+            <td class="num">{{ row.current.percent | pct if row.current else "--" }}</td>
+            <td class="num">{{ row.scenario.percent | pct if row.scenario else "--" }}</td>
+            <td class="sub">
+              {% if row.unknown_count %}
+                {{ row.filled_count }} of {{ row.unknown_count }} filled
+              {% else %}
+                nothing unknown
+              {% endif %}
+            </td>
+            <td class="num">{{ row.points_blank | num }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {% if shown.warnings %}
+    <ul class="warnings">
+      {% for warning in shown.warnings %}<li>{{ warning }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+</div>

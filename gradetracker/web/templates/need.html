@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}What do I need: {{ course.code }}{% endblock %}
+{% block content %}
+
+{% macro unknown_table(rows, ticked) %}
+  <table>
+    <thead><tr><th>Unknown</th><th>Assignment</th><th class="num">Possible</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for item in rows %}
+        <tr>
+          <td><input type="checkbox" name="unknown" value="{{ item.id }}"
+                     {% if ticked %}checked{% endif %}
+                     aria-label="{{ item.name }} unknown"></td>
+          <td>{{ item.name }} <span class="sub">({{ item.source }})</span></td>
+          <td class="num">{{ item.possible | num }}</td>
+          <td class="nowrap">{{ item.status }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endmacro %}
+
+  <section class="card">
+    <h2>{{ course.code }} - what do I need</h2>
+    <div class="sub">
+      Pick a target and which items are still unknown. Everything else is
+      assumed to continue as it has been going.
+    </div>
+    <div class="actions">
+      <a class="button" href="{{ url_for('course', course_id=course.id) }}">Back to course</a>
+    </div>
+  </section>
+
+  {% if not items %}
+    <div class="empty">
+      <p>Every assignment already has a score, so there is nothing left to solve for.</p>
+      <p>Your grade is {{ current.percent | pct }} ({{ current.letter or "--" }}).</p>
+    </div>
+  {% else %}
+    <form id="need-form"
+          hx-post="{{ url_for('need_calc', course_id=course.id) }}"
+          hx-trigger="change delay:200ms from:#need-form, submit"
+          hx-target="#need-result"
+          hx-swap="innerHTML">
+      <section class="card">
+        <div class="row">
+          <div>
+            <label for="letter">Target letter</label>
+            <select id="letter" name="letter">
+              {% for letter, minimum in cutoffs %}
+                <option value="{{ letter }}" {% if letter == "A-" %}selected{% endif %}>
+                  {{ letter }} ({{ minimum | num }}%)
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label for="percent">...or an exact percent</label>
+            <input type="number" id="percent" name="percent" step="0.1" min="0"
+                   placeholder="e.g. 88" style="width:120px">
+          </div>
+          <button class="primary" type="submit">Work it out</button>
+        </div>
+        <p class="sub" style="margin-top:8px">A percent, if given, wins over the letter.</p>
+      </section>
+
+      <section class="card">
+        <h3 style="margin-top:0">Which items are unknown?</h3>
+        {% if mapped_items %}
+          {{ unknown_table(mapped_items, true) }}
+        {% endif %}
+        {% if unmapped_items %}
+          {# In weighted mode the solver cannot move the grade with an item
+             that has no category, so these start closed and unticked rather
+             than inflating "on N items" in the answer. #}
+          <details class="unmapped-group"{% if not weighted %} open{% endif %}>
+            <summary>
+              <strong>Unmapped</strong>
+              <span class="sub">
+                {{ unmapped_items | length }} items &middot;
+                {{ "not counted in weighted mode" if weighted else "counted in points mode" }}
+              </span>
+            </summary>
+            {{ unknown_table(unmapped_items, not weighted) }}
+          </details>
+        {% endif %}
+      </section>
+    </form>
+
+    <div id="need-result">
+      <div class="result-box sub">Choose a target to see what it would take.</div>
+    </div>
+  {% endif %}
+
+{% endblock %}

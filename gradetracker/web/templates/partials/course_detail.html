@@ -1,0 +1,337 @@
+{% macro assignment_table(items, heading, categories, dropped_ids, duplicate_ids, course, rank_labels={}) %}
+  {% if items %}
+    {% if heading %}<h3>{{ heading }}</h3>{% endif %}
+    <table>
+      <thead>
+        <tr>
+          <th>Assignment</th>
+          <th class="num">Score</th>
+          <th>Status</th>
+          <th>Source</th>
+          <th>Due</th>
+          <th>Category</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+          <tr class="{% if item.id in dropped_ids %}dropped {% endif %}{% if item.excluded %}excluded {% endif %}{% if item.id in duplicate_ids %}duplicate{% endif %}">
+            <td>
+              {{ item.name }}
+              {%- if rank_labels.get(item.id) %} <span class="badge">{{ rank_labels[item.id] }}</span>{% endif %}
+              {%- if item.extra_credit %} <span class="badge">extra credit</span>{% endif %}
+              {%- if item.manual %} <span class="badge">by hand</span>{% endif %}
+              {%- if item.category_locked %} <span class="badge">locked</span>{% endif %}
+            </td>
+            <td class="num">{{ item.earned | num }}/{{ item.possible | num }}</td>
+            <td class="nowrap">{{ item.status }}</td>
+            <td class="nowrap">{{ item.source }}</td>
+            <td class="nowrap">{{ (item.due_at or "")[:10] }}</td>
+            <td>
+              <select name="category_id"
+                      hx-post="{{ url_for('set_assignment_category', assignment_id=item.id) }}"
+                      hx-target="#course-detail" hx-swap="innerHTML">
+                <option value="">(none)</option>
+                {% for category in categories %}
+                  <option value="{{ category.id }}" {% if category.id == item.category_id %}selected{% endif %}>{{ category.name }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td>
+              <div class="row" style="gap:4px">
+                {% if item.status == "missing" %}
+                  <button class="small"
+                          hx-post="{{ url_for('toggle_assignment_flag', assignment_id=item.id, flag='missing-as-zero') }}"
+                          hx-target="#course-detail" hx-swap="innerHTML">zero: {{ "on" if item.missing_as_zero else "off" }}</button>
+                {% endif %}
+                <button class="small"
+                        hx-post="{{ url_for('toggle_assignment_flag', assignment_id=item.id, flag='extra-credit') }}"
+                        hx-target="#course-detail" hx-swap="innerHTML">{{ "unset EC" if item.extra_credit else "extra credit" }}</button>
+                <button class="small"
+                        hx-post="{{ url_for('toggle_assignment_flag', assignment_id=item.id, flag='excluded') }}"
+                        hx-target="#course-detail" hx-swap="innerHTML">{{ "include" if item.excluded else "exclude" }}</button>
+                {%- if item.excluded and item.exclusion_source == "auto" %}
+                  {# Whose decision this was: the rule's, not yours. #}
+                  <span class="badge">auto</span>
+                {%- endif %}
+                {% if item.manual %}
+                  <button class="small"
+                          hx-post="{{ url_for('delete_assignment', assignment_id=item.id) }}"
+                          hx-target="#course-detail" hx-swap="innerHTML">delete</button>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endmacro %}
+
+<section class="card">
+  <h2>{{ course.code }}</h2>
+  <div class="sub">{{ course.name or "" }}</div>
+
+  <div class="grades">
+    <div class="grade">
+      <div class="label">Current</div>
+      <div class="big">{{ current.percent | pct }}</div>
+      <div class="sub">{{ current.letter or "--" }}</div>
+    </div>
+    <div class="grade">
+      <div class="label">Projected</div>
+      <div class="big">{{ projected.percent | pct }}</div>
+      <div class="sub">{{ projected.letter or "--" }}</div>
+    </div>
+  </div>
+
+  {# Trust signals travel with the number, never in a separate log. #}
+  <div class="badges">
+    {% if rules_status == "confirmed" %}
+      <span class="badge ok">{{ rules_summary }}</span>
+    {% elif rules_status == "none" %}
+      <span class="badge bad">unconfirmed rules</span>
+    {% else %}
+      <span class="badge warn">{{ rules_summary }}</span>
+    {% endif %}
+    <span class="badge">{{ current.mode }} mode</span>
+    <span class="badge{% if stale %} warn{% endif %}">synced {{ last_seen_ago }}</span>
+    {% for source in sources %}
+      <span class="badge">{{ source.source }} {{ source.ago }}</span>
+    {% endfor %}
+  </div>
+
+  {# Stated once, next to the badges that say where the numbers came from. #}
+  <form class="preference row"
+        hx-post="{{ url_for('set_course_preference', course_id=course.id) }}"
+        hx-trigger="change" hx-target="#course-detail" hx-swap="innerHTML">
+    <label class="sub" for="preferred-source">
+      When both platforms carry the same assignment keep:
+    </label>
+    <select id="preferred-source" name="preferred_source">
+      <option value="" {% if not preferred_source %}selected{% endif %}>ask me</option>
+      <option value="gradescope" {% if preferred_source == "gradescope" %}selected{% endif %}>Gradescope</option>
+      <option value="blackboard" {% if preferred_source == "blackboard" %}selected{% endif %}>Blackboard</option>
+    </select>
+  </form>
+
+  {% if current.warnings %}
+    <ul class="warnings">
+      {# The engine already says how many graded items have no category, so
+         there is no second sentence here saying it again; the one warning
+         that can be acted on carries the way to act on it. #}
+      {% for warning in current.warnings %}
+        <li>
+          {{ warning }}
+          {%- if "no category" in warning %}
+            <a href="{{ url_for('map_page', course_id=course.id) }}">Map them</a>.
+          {%- endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <div class="actions">
+    <a class="button" href="{{ url_for('whatif', course_id=course.id) }}">What-if</a>
+    <a class="button" href="{{ url_for('need', course_id=course.id) }}">What do I need</a>
+    <a class="button" href="{{ url_for('rules_form', course_id=course.id) }}">Rules</a>
+    <a class="button" href="{{ url_for('map_page', course_id=course.id) }}">Map assignments</a>
+  </div>
+</section>
+
+{% if duplicate_rows %}
+  <section class="card">
+    <h3 style="margin-top:0">Possible duplicates</h3>
+    {% if preferred_source %}
+      <p class="sub">
+        This course prefers {{ preferred_source | title }}; mirrored copies are
+        excluded at sync. These pairs are the ones the rule could not settle,
+        usually because both copies came from the same platform.
+      </p>
+    {% else %}
+      <p class="sub">
+        Each pair looks like one piece of work counted twice, which doubles its
+        share of the grade. Keeping one platform excludes the other row; sync
+        leaves an excluded row excluded.
+      </p>
+    {% endif %}
+    <div class="actions">
+      <button class="small"
+              hx-post="{{ url_for('resolve_duplicates', course_id=course.id) }}"
+              hx-vals='{"keep": "gradescope"}'
+              hx-target="#course-detail" hx-swap="innerHTML">
+        Keep Gradescope for all {{ duplicate_rows | length }}
+      </button>
+      <button class="small"
+              hx-post="{{ url_for('resolve_duplicates', course_id=course.id) }}"
+              hx-vals='{"keep": "blackboard"}'
+              hx-target="#course-detail" hx-swap="innerHTML">
+        Keep Blackboard for all {{ duplicate_rows | length }}
+      </button>
+    </div>
+    <table>
+      <tbody>
+        {% for row in duplicate_rows %}
+          <tr class="duplicate">
+            <td>
+              {{ row.left.name }}
+              <span class="sub">({{ row.left.source }}, {{ row.left.earned | num }}/{{ row.left.possible | num }})</span>
+              <span class="sub">paired with</span>
+              {{ row.right.name }}
+              <span class="sub">({{ row.right.source }}, {{ row.right.earned | num }}/{{ row.right.possible | num }})</span>
+            </td>
+            <td>
+              <div class="row" style="gap:4px">
+                <button class="small"
+                        hx-post="{{ url_for('resolve_duplicates', course_id=course.id) }}"
+                        hx-vals='{"keep": "gradescope", "pair": "{{ row.pair }}"}'
+                        hx-target="#course-detail" hx-swap="innerHTML">keep gradescope</button>
+                <button class="small"
+                        hx-post="{{ url_for('resolve_duplicates', course_id=course.id) }}"
+                        hx-vals='{"keep": "blackboard", "pair": "{{ row.pair }}"}'
+                        hx-target="#course-detail" hx-swap="innerHTML">keep blackboard</button>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+{% endif %}
+
+<section class="card">
+  <h3 style="margin-top:0">Categories</h3>
+  {% if groups %}
+    <div class="bars">
+      {% for group in groups %}
+        {% set result = group.result %}
+        <div class="bar-row">
+          <div>
+            {{ group.category.name }}
+            <div class="sub">
+              weight {{ group.category.weight | num }}{% if group.category.weight is not none %}%{% endif %}
+              {%- if group.category.drop_lowest %}, drop {{ group.category.drop_lowest }}{% endif %}
+              {%- if group.category.rank_weights %}, ranked {{ group.category.rank_weights | map('num') | join('% / ') }}%{% endif %}
+            </div>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width: {{ (result.percent if result else none) | bar }}%"></div>
+          </div>
+          <div class="right">
+            {% if result and result.percent is not none %}
+              {{ result.percent | pct }}<br>{{ result.earned | num }}/{{ result.possible | num }}
+            {% else %}
+              no graded work
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="sub">No categories yet. <a href="{{ url_for('rules_form', course_id=course.id) }}">Enter the grading rules</a>.</p>
+  {% endif %}
+</section>
+
+{% macro group_summary(stats, result) %}
+  {%- set bits = [] -%}
+  {%- if result and result.percent is not none -%}
+    {%- set _ = bits.append((result.earned | num) ~ "/" ~ (result.possible | num)) -%}
+    {%- set _ = bits.append(result.percent | pct) -%}
+  {%- endif -%}
+  {%- if stats.graded -%}{%- set _ = bits.append(stats.graded ~ " graded") -%}{%- endif -%}
+  {%- if stats.pending -%}{%- set _ = bits.append(stats.pending ~ " ungraded") -%}{%- endif -%}
+  {%- if stats.attention -%}
+    {%- set _ = bits.append(stats.attention ~ " to act on") -%}
+  {%- endif -%}
+  {%- for bit in bits %}{% if not loop.first %} &middot; {% endif %}{{ bit }}{% endfor -%}
+{% endmacro %}
+
+{% macro category_details(key, heading, weight, stats, result, items, categories, dropped_ids, duplicate_ids, course, rank_labels) %}
+  {% if items %}
+    {# Native <details>: it collapses without JavaScript, and the script
+       below only remembers which ones the user left open. #}
+    <details class="category-details" data-key="{{ key }}" {% if stats.open %}open{% endif %}>
+      <summary>
+        <strong>{{ heading }}</strong>
+        {%- if weight is not none %} <span class="sub">weight {{ weight | num }}%</span>{% endif %}
+        <span class="sub">{{ group_summary(stats, result) }}</span>
+      </summary>
+      {{ assignment_table(items, "", categories, dropped_ids, duplicate_ids, course, rank_labels) }}
+    </details>
+  {% endif %}
+{% endmacro %}
+
+<section class="card">
+  <div class="row" style="justify-content:space-between;align-items:center">
+    <h3 style="margin:0">Assignments</h3>
+    <div class="sub">
+      <a href="#" id="expand-all">Expand all</a> /
+      <a href="#" id="collapse-all">Collapse all</a>
+    </div>
+  </div>
+  {% for group in groups %}
+    {{ category_details(
+         "course-" ~ course.id ~ "-category-" ~ group.category.id,
+         group.category.name, group.category.weight, group.stats, group.result,
+         group.assignments, categories, dropped_ids, duplicate_ids, course, rank_labels) }}
+  {% endfor %}
+  {{ category_details(
+       "course-" ~ course.id ~ "-unmapped", "Unmapped", none,
+       uncategorised_stats, none,
+       uncategorised, categories, dropped_ids, duplicate_ids, course, rank_labels) }}
+  {{ category_details(
+       "course-" ~ course.id ~ "-excluded", "Excluded", none,
+       excluded_stats, none,
+       excluded_items, categories, dropped_ids, duplicate_ids, course, rank_labels) }}
+  {% if not groups and not uncategorised and not excluded_items %}
+    <p class="sub">No assignments yet.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h3 style="margin-top:0">Add an item by hand</h3>
+  <p class="sub">
+    For grades that never reach either platform: a paper exam, participation, a
+    presentation. Sync leaves these alone.
+  </p>
+  <form hx-post="{{ url_for('add_assignment', course_id=course.id) }}"
+        hx-target="#course-detail" hx-swap="innerHTML">
+    <div class="row">
+      <div>
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required>
+      </div>
+      <div>
+        <label for="earned">Earned</label>
+        <input type="number" id="earned" name="earned" step="0.01" style="width:90px">
+      </div>
+      <div>
+        <label for="possible">Possible</label>
+        <input type="number" id="possible" name="possible" step="0.01" style="width:90px">
+      </div>
+      <div>
+        <label for="status">Status</label>
+        <select id="status" name="status">
+          <option value="graded">graded</option>
+          <option value="ungraded">ungraded</option>
+          <option value="submitted">submitted</option>
+          <option value="missing">missing</option>
+          <option value="excused">excused</option>
+        </select>
+      </div>
+      <div>
+        <label for="add_category">Category</label>
+        <select id="add_category" name="category_id">
+          <option value="">(none)</option>
+          {% for category in categories %}
+            <option value="{{ category.id }}">{{ category.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label><input type="checkbox" name="extra_credit" value="1"> extra credit</label>
+      </div>
+      <button class="primary" type="submit">Add item</button>
+    </div>
+  </form>
+</section>

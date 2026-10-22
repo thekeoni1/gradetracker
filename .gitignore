@@ -1,0 +1,20 @@
+# Live session tokens and fetched data — never track these.
+data/
+recon/
+.env
+*.har
+*.db
+# Captured session cookies, belt-and-braces: data/ already covers them.
+*.cookies.*
+
+# The build plan stays on this machine: it quotes real grades.
+Grade Tracker - Build Plan.pdf
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+build/
+dist/
