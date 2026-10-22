@@ -156,7 +156,7 @@ def _floats(form, prefix: str) -> dict[int, float]:
     return out
 
 
-def _category_groups(course, items) -> list[dict]:
+def _category_groups(course, items, graded=()) -> list[dict]:
     """Unknown items grouped by category, in the course's own order.
 
     Anything whose category was never set, or was set to a category this course
@@ -166,6 +166,12 @@ def _category_groups(course, items) -> list[dict]:
     "posted" counts what the category holds in all, which is what tells an
     empty group that is finished apart from a final nobody has posted from one
     that is simply all marked.
+
+    graded are the already-scored items, grouped the same way and handed back
+    under "graded", so a regrade row sits with the category it belongs to.
+    They are kept apart from "items" because the two answer different
+    questions, and everything that counts what is still unknown reads
+    "items".
     """
     categories = {category.id: category for category in course.categories}
     posted: dict[int | None, int] = {}
@@ -182,18 +188,23 @@ def _category_groups(course, items) -> list[dict]:
                 "name": category.name,
                 "weight": category.weight,
                 "items": chosen,
+                "graded": [
+                    item for item in graded if item["category_id"] == category_id
+                ],
                 "posted": posted.get(category_id, 0),
             }
         )
     loose = [item for item in items if item["category_id"] not in categories]
-    if loose:
+    loose_graded = [item for item in graded if item["category_id"] not in categories]
+    if loose or loose_graded:
         groups.append(
             {
                 "category_id": None,
                 "name": "Unmapped",
                 "weight": None,
                 "items": loose,
-                "posted": len(loose),
+                "graded": loose_graded,
+                "posted": len(loose) + len(loose_graded),
             }
         )
     return groups
@@ -288,13 +299,21 @@ def _need_by_category(course, unknown_ids, target_percent, letter) -> dict:
     return {"rows": rows, "unmapped_note": note}
 
 
-def _whatif_by_category(course, items, overrides, current, scenario) -> list[dict]:
-    """Per-category current vs scenario, with what is still blank in each."""
+def _whatif_by_category(
+    course, items, overrides, current, scenario, graded=()
+) -> list[dict]:
+    """Per-category current vs scenario, with what is still blank in each.
+
+    "Filled in" counts the unknowns only. A regrade is an override too, but it
+    answers nothing that was open: counting it as a filled unknown would make
+    a category of finished work report progress it never made. It gets its
+    own count instead.
+    """
     current_results = {result.category_id: result for result in current.categories}
     scenario_results = {result.category_id: result for result in scenario.categories}
 
     rows = []
-    for group in _category_groups(course, items):
+    for group in _category_groups(course, items, graded):
         unknown = group["items"]
         filled = [item for item in unknown if item["id"] in overrides]
         blank = [item for item in unknown if item["id"] not in overrides]
@@ -307,6 +326,9 @@ def _whatif_by_category(course, items, overrides, current, scenario) -> list[dic
                 "unknown_count": len(unknown),
                 "filled_count": len(filled),
                 "points_blank": sum(item["possible"] or 0.0 for item in blank),
+                "regraded_count": sum(
+                    1 for item in group["graded"] if item["id"] in overrides
+                ),
             }
         )
     return rows
@@ -731,17 +753,21 @@ def create_app(
             return render_template("not_found.html", what=f"course {course_id}"), 404
 
         items = queries.unscored_assignments(conn, course_id)
+        graded = queries.graded_assignments(conn, course_id)
         current = current_grade(course)
-        groups = _category_groups(course, items)
+        groups = _category_groups(course, items, graded)
         return render_template(
             "whatif.html",
             course=course,
             current=current,
             items=items,
+            graded=graded,
             groups=groups,
             plannable=_plannable(groups),
             weighted=_is_weighted(course),
-            category_rows=_whatif_by_category(course, items, {}, current, current),
+            category_rows=_whatif_by_category(
+                course, items, {}, current, current, graded
+            ),
             scenarios=queries.list_scenarios(conn, course_id),
             preset={},
             preset_name="",
@@ -817,6 +843,7 @@ def create_app(
             else scenario.percent - current.percent
         )
         items = queries.unscored_assignments(conn, course_id)
+        graded = queries.graded_assignments(conn, course_id)
         return render_template(
             "partials/whatif_result.html",
             current=current,
@@ -824,7 +851,7 @@ def create_app(
             delta=delta,
             count=len(overrides),
             category_rows=_whatif_by_category(
-                course, items, overrides, current, scenario
+                course, items, overrides, current, scenario, graded
             ),
         )
 
@@ -838,17 +865,21 @@ def create_app(
         scenarios = queries.list_scenarios(conn, course_id)
         chosen = next((s for s in scenarios if s["id"] == scenario_id), None)
         items = queries.unscored_assignments(conn, course_id)
+        graded = queries.graded_assignments(conn, course_id)
         current = current_grade(course)
-        groups = _category_groups(course, items)
+        groups = _category_groups(course, items, graded)
         return render_template(
             "whatif.html",
             course=course,
             current=current,
             items=items,
+            graded=graded,
             groups=groups,
             plannable=_plannable(groups),
             weighted=_is_weighted(course),
-            category_rows=_whatif_by_category(course, items, {}, current, current),
+            category_rows=_whatif_by_category(
+                course, items, {}, current, current, graded
+            ),
             scenarios=scenarios,
             preset=chosen["overrides"] if chosen else {},
             preset_name=chosen["name"] if chosen else "",

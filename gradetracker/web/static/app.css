@@ -491,6 +491,32 @@ code {
 
 .placeholder { padding: 4px 0 8px; }
 
+/* Same offer, same restraint: changing a mark that is already in is a
+   question the page answers, not one it asks. */
+.regrade-toggle > summary {
+  cursor: pointer;
+  font-size: var(--t-sub);
+  color: var(--muted);
+  padding: 8px 0 2px;
+}
+
+.regrade-toggle > summary:hover { color: var(--accent); }
+
+.regrade { padding: 2px 0 8px; }
+
+.reset-regrade {
+  font: inherit;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.reset-regrade:hover { color: var(--accent); border-color: transparent; }
+
 /* Second line of a slider row, where the row's real controls are the slider
    and the box. A button shaped like those would outrank both. */
 .remove-placeholder {

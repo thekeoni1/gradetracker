@@ -1227,12 +1227,14 @@ def test_a_course_with_nothing_unscored_still_offers_placeholders(client, seeded
     body = text(client.get(f"/courses/{econ}/whatif"))
 
     assert "Nothing left to guess at" in body
-    assert 'type="range"' not in body
+    # Nothing is unknown, so there is no group of unknowns.
+    assert 'class="category-group"' not in body
     # Every category is still here to plan with, Final included.
     assert len(_whatif_details(body, "empty-category")) == 5
     assert "whatif/placeholder" in body
-    # Nothing to save, so nothing offering to save it.
-    assert "Save scenario" not in body
+    # The only sliders left are regrades, and those are worth saving.
+    assert "Regrade something in Problem Sets?" in body
+    assert "Save scenario" in body
 
 
 def test_a_placeholder_reaches_the_need_page(client, seeded_db):
@@ -1308,6 +1310,213 @@ def test_need_calc_with_no_boxes_ticked_uses_every_unknown(client, seeded_db):
     body = text(client.post(f"/courses/{econ}/need/calc", data={"letter": "A-"}))
 
     assert "You need" in body or "locked in" in body
+
+
+# --- what-if regrades -----------------------------------------------------
+#
+# The course that lets you rewrite a paper: an 88/100 that could become a 95,
+# and the question is what that does to the course grade. The engine already
+# applied an override to any item whatever its status, so all of this is the
+# rows to drag.
+
+
+def _regrade_blocks(body: str) -> list[str]:
+    """Every <details class="regrade-toggle"> chunk, opening tag included."""
+    import re
+
+    return re.findall(r'<details class="regrade-toggle"[^>]*>.*?</details>', body, re.S)
+
+
+def _regrade_row(body: str, assignment_id: int) -> str:
+    """One slider-row's markup, found by its own box name."""
+    marker = f'name="score_{assignment_id}"'
+    for chunk in body.split('<div class="slider-row">')[1:]:
+        if marker in chunk:
+            return chunk.split("</details>", 1)[0]
+    return ""
+
+
+def _graded(path, course_id):
+    conn = db.connect(path)
+    try:
+        return queries.graded_assignments(conn, course_id)
+    finally:
+        conn.close()
+
+
+def test_a_graded_item_gets_a_blank_box_with_its_real_score_behind_it(
+    client, seeded_db
+):
+    """Blank is how the row says "leave this alone", so blank it starts."""
+    econ = course_ids(seeded_db)["ECON 166"]
+    item = [i for i in _graded(seeded_db, econ) if i["name"] == "Problem Set 1"][0]
+    assert item["earned"] == 18.0
+
+    body = text(client.get(f"/courses/{econ}/whatif"))
+    row = _regrade_row(body, item["id"])
+
+    assert row
+    assert f'name="score_{item["id"]}" min="0" step="0.5"' in " ".join(row.split())
+    assert 'value=""' in row
+    assert 'placeholder="18"' in row
+    # The score it has now, said once, where the row says what it is.
+    assert "18 / 20 now" in " ".join(row.split())
+    assert "gradescope" in row
+
+
+def test_the_regrade_toggle_only_appears_where_there_is_a_mark_to_change(
+    client, seeded_db
+):
+    econ = course_ids(seeded_db)["ECON 166"]
+    # Problem Sets then holds graded items and an unknown; Quizzes holds only
+    # the unknown.
+    _two_unknown_categories(seeded_db, econ)
+
+    body = text(client.get(f"/courses/{econ}/whatif"))
+
+    assert "Regrade something in Problem Sets?" in body
+    assert "Regrade something in Quizzes?" not in body
+    # Closed until it is wanted, like the placeholder offer beside it.
+    assert '<details class="regrade-toggle">' in body
+    assert "open" not in _regrade_blocks(body)[0].split(">", 1)[0]
+
+
+def test_the_regrade_sliders_sit_inside_the_recalculating_form(client, seeded_db):
+    """Outside #whatif-form the boxes would post nothing and move nothing."""
+    econ = course_ids(seeded_db)["ECON 166"]
+
+    body = text(client.get(f"/courses/{econ}/whatif"))
+    form = body.split('<form id="whatif-form"', 1)[1].split("</form>", 1)[0]
+
+    assert _regrade_blocks(form)
+    assert len(_regrade_blocks(form)) == len(_regrade_blocks(body))
+
+
+def test_a_regrade_moves_the_course_grade_by_what_the_engine_says(client, seeded_db):
+    """The real case: an 88/100 taken to full marks."""
+    from gradetracker.engine.calculate import current_grade
+
+    cs = course_ids(seeded_db)["CS 220"]
+    exam = [i for i in _graded(seeded_db, cs) if i["name"] == "Exam 1"][0]
+    assert (exam["earned"], exam["possible"]) == (88.0, 100.0)
+
+    conn = db.connect(seeded_db)
+    course = load.load_course(conn, cs)
+    conn.close()
+    before = current_grade(course).percent
+    after = current_grade(course, overrides={exam["id"]: 100.0}).percent
+    assert after > before
+
+    body = text(
+        client.post(f"/courses/{cs}/whatif/calc", data={f"score_{exam['id']}": "100"})
+    )
+
+    assert f"{after:.2f}%" in body
+    assert "1 item(s) filled in" in body
+    assert f"+{after - before:.2f}" in body
+
+
+def test_a_blank_regrade_box_changes_nothing(client, seeded_db):
+    """An untouched row sends nothing, so the engine keeps the real mark."""
+    cs = course_ids(seeded_db)["CS 220"]
+    exam = [i for i in _graded(seeded_db, cs) if i["name"] == "Exam 1"][0]
+
+    body = text(
+        client.post(f"/courses/{cs}/whatif/calc", data={f"score_{exam['id']}": ""})
+    )
+    rows = _by_category_rows(body)
+
+    assert "nothing filled in yet" in body
+    # Current and scenario are the same number, whatever it is.
+    percents = body.split('class="big">')
+    assert percents[1][:7] == percents[2][:7]
+    assert all("regraded" not in cells[4] for cells in rows.values())
+
+
+def test_a_regrade_is_not_counted_as_a_filled_unknown(client, seeded_db):
+    """A category of finished work has made no progress on its unknowns."""
+    econ = course_ids(seeded_db)["ECON 166"]
+    item = [i for i in _graded(seeded_db, econ) if i["name"] == "Problem Set 1"][0]
+
+    body = text(
+        client.post(f"/courses/{econ}/whatif/calc", data={f"score_{item['id']}": "20"})
+    )
+    cells = _by_category_rows(body)["Problem Sets"]
+
+    assert "nothing unknown" in cells[4]
+    assert "1 regraded" in cells[4]
+    # The category it is in moved; the one with the real unknown did not.
+    assert "regraded" not in _by_category_rows(body)["Midterm"][4]
+
+
+def test_a_regrade_saves_and_loads_open(client, seeded_db):
+    econ = course_ids(seeded_db)["ECON 166"]
+    item = [i for i in _graded(seeded_db, econ) if i["name"] == "Problem Set 1"][0]
+
+    saved = client.post(
+        f"/courses/{econ}/scenarios",
+        data={"name": "rewrite the first one", f"score_{item['id']}": "19.5"},
+    )
+    assert saved.status_code == 302
+
+    conn = db.connect(seeded_db)
+    scenarios = queries.list_scenarios(conn, econ)
+    conn.close()
+    assert scenarios[0]["overrides"] == {item["id"]: 19.5}
+
+    loaded = text(client.get(f"/courses/{econ}/whatif/scenario/{scenarios[0]['id']}"))
+    row = _regrade_row(loaded, item["id"])
+
+    assert 'value="19.5"' in row
+    # Folded open, or a loaded scenario would hide the change it is about.
+    blocks = [b for b in _regrade_blocks(loaded) if f'score_{item["id"]}' in b]
+    assert len(blocks) == 1
+    assert blocks[0].startswith('<details class="regrade-toggle" open>')
+    # And the other categories' toggles stay closed.
+    assert '<details class="regrade-toggle">' in loaded
+
+
+def test_excluded_and_excused_items_get_no_regrade_row(client, seeded_db):
+    """Neither counts towards the grade, so neither is worth a slider."""
+    econ = course_ids(seeded_db)["ECON 166"]
+    sets = [i for i in _graded(seeded_db, econ) if i["name"].startswith("Problem Set")]
+    excluded, excused = sets[0], sets[1]
+
+    conn = db.connect(seeded_db)
+    conn.execute("UPDATE assignments SET excluded = 1 WHERE id = ?", (excluded["id"],))
+    conn.execute(
+        "UPDATE assignments SET status = 'excused' WHERE id = ?", (excused["id"],)
+    )
+    conn.commit()
+    conn.close()
+
+    assert {i["id"] for i in _graded(seeded_db, econ)}.isdisjoint(
+        {excluded["id"], excused["id"]}
+    )
+
+    body = text(client.get(f"/courses/{econ}/whatif"))
+
+    assert f'name="score_{excluded["id"]}"' not in body
+    assert f'name="score_{excused["id"]}"' not in body
+
+
+def test_a_regrade_for_another_course_is_ignored(client, seeded_db):
+    """The engine only ever sees this course's own assignments."""
+    ids = course_ids(seeded_db)
+    econ, cs = ids["ECON 166"], ids["CS 220"]
+    exam = [i for i in _graded(seeded_db, cs) if i["name"] == "Exam 1"][0]
+
+    mine = text(client.post(f"/courses/{econ}/whatif/calc", data={}))
+    theirs = text(
+        client.post(f"/courses/{econ}/whatif/calc", data={f"score_{exam['id']}": "0"})
+    )
+
+    # The scenario grade is untouched. The count is honest about the box that
+    # was filled in, which is all the page can say about an id it never saw.
+    assert mine.split('class="big">')[2][:7] == theirs.split('class="big">')[2][:7]
+    assert f'name="score_{exam["id"]}"' not in text(
+        client.get(f"/courses/{econ}/whatif")
+    )
 
 
 def _by_category_rows(body: str) -> dict[str, list[str]]:

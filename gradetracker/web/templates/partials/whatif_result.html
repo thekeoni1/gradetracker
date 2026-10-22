@@ -56,6 +56,11 @@
               {% else %}
                 nothing unknown
               {% endif %}
+              {#- A regrade fills no unknown, so it is counted apart from the
+                  pair above rather than folded into it. -#}
+              {% if row.regraded_count %}
+                &middot; {{ row.regraded_count }} regraded
+              {% endif %}
             </td>
             <td class="num">{{ row.points_blank | num }}</td>
           </tr>

@@ -373,6 +373,34 @@ def unscored_assignments(conn: sqlite3.Connection, course_id: int) -> list[dict]
     return [dict(row) for row in rows]
 
 
+def graded_assignments(conn: sqlite3.Connection, course_id: int) -> list[dict]:
+    """The items a what-if can re-score: a real mark already in.
+
+    For the course that lets you rewrite a paper, or a regrade request worth
+    arguing: the question is not what an unknown might be, it is what the
+    grade becomes if a known score changes. The engine applies an override to
+    any item whatever its status, so this only had to be a list of rows.
+
+    No excused clause, unlike unscored_assignments: an excused item is not
+    graded, so status already rules it out.
+    """
+    rows = conn.execute(
+        """
+        SELECT a.*, sc.source
+        FROM assignments AS a
+        JOIN source_courses AS sc ON sc.id = a.source_course_id
+        WHERE sc.course_id = ?
+          AND a.excluded = 0
+          AND a.possible > 0
+          AND a.status = 'graded'
+          AND a.earned IS NOT NULL
+        ORDER BY a.due_at IS NULL, a.due_at, a.id
+        """,
+        (course_id,),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
 # --- row actions ----------------------------------------------------------
 
 

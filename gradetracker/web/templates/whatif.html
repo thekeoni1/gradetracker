@@ -36,6 +36,54 @@
   </div>
 {% endmacro %}
 
+{#- Sliders for work that already has a mark, for the course that lets you
+    rewrite a paper or the regrade worth asking for. One row per graded item.
+
+    The box starts blank, with the real score as its placeholder, so an
+    untouched row sends nothing and the engine keeps the mark it has. Blank is
+    the only way to say "leave this alone", which is why the score is not the
+    value. -#}
+{% macro regrade_rows(group) %}
+  {% set regraded = group['graded'] | selectattr("id", "in", preset) | list %}
+  <details class="regrade-toggle"{% if regraded %} open{% endif %}>
+    <summary>Regrade something in {{ group.name }}?</summary>
+    <div class="regrade">
+      <p class="sub" style="margin:4px 0 2px">
+        A blank box keeps the real score. Type a new one to see what it would
+        do.
+      </p>
+      {% for item in group['graded'] %}
+        {% set value = preset.get(item.id, "") %}
+        {# Extra credit can put earned above possible, and a box whose value
+           sits past its own max is marked invalid by the browser. #}
+        {% set top = [item.possible, item.earned] | max %}
+        <div class="slider-row">
+          <div>
+            {{ item.name }}
+            <div class="sub">
+              {{ item.source }} &middot;
+              {{ item.earned | num }} / {{ item.possible | num }} now
+              &middot;
+              <button type="button" class="reset-regrade"
+                      data-earned="{{ item.earned | num }}"
+                      aria-label="Keep the real score for {{ item.name }}">reset</button>
+            </div>
+          </div>
+          <input type="range" min="0" max="{{ top | num }}" step="0.5"
+                 value="{{ value if value != "" else item.earned | num }}"
+                 oninput="this.form.querySelector('[name=score_{{ item.id }}]').value = this.value"
+                 aria-label="{{ item.name }} new score slider">
+          <input type="number" name="score_{{ item.id }}" min="0" step="0.5"
+                 max="{{ top | num }}" value="{{ value }}"
+                 placeholder="{{ item.earned | num }}"
+                 oninput="this.closest('.slider-row').querySelector('[type=range]').value = this.value"
+                 aria-label="{{ item.name }} new score">
+        </div>
+      {% endfor %}
+    </div>
+  </details>
+{% endmacro %}
+
 {% block content %}
 
   <section class="card">
@@ -50,7 +98,7 @@
     </div>
   </section>
 
-  {% if not items and not plannable %}
+  {% if not items and not plannable and not graded %}
     <div class="empty">
       <p>Nothing left to guess at: every assignment already has a score.</p>
     </div>
@@ -59,7 +107,8 @@
       <div class="empty">
         <p>
           Nothing left to guess at: every assignment already has a score. For
-          anything still to come, add a placeholder to its category below.
+          anything still to come, add a placeholder to its category below{% if graded %}, or
+          put a different score on something already marked{% endif %}.
         </p>
       </div>
     {% endif %}
@@ -69,7 +118,9 @@
           hx-target="#whatif-result"
           hx-swap="innerHTML">
       <section class="card">
-        <h3 style="margin-top:0">Ungraded items</h3>
+        {# A course with every item marked still has this section, and what is
+           in it there is regrades. #}
+        <h3 style="margin-top:0">{{ "Ungraded items" if items else "Marked items" }}</h3>
         {% for group in groups %}
           {# group['items'], never group.items: on a dict that is the method. #}
           {% if group['items'] %}
@@ -136,6 +187,9 @@
                          aria-label="{{ item.name }} score">
                 </div>
               {% endfor %}
+              {% if group['graded'] %}
+                {{ regrade_rows(group) }}
+              {% endif %}
               {% if group.category_id is not none %}
                 {# Quiet here: a second midterm that has not been posted yet is
                    worth planning for, but this is not what the page is for. #}
@@ -178,16 +232,27 @@
                 page.
               </p>
               {{ add_placeholder(group) }}
+              {# Last in the block: a category where everything is marked is
+                 exactly where a rewrite or a regrade request applies. #}
+              {% if group['graded'] %}
+                {{ regrade_rows(group) }}
+              {% endif %}
             </details>
           {% endif %}
         {% endfor %}
-        <p class="sub" style="margin-top:10px">
-          A blank box means "still unknown", so that item is left out rather than
-          counted as a zero.
-        </p>
+        {# Only where something is unknown. On a page of regrades a blank box
+           means the mark it already has, which each block says for itself. #}
+        {% if items %}
+          <p class="sub" style="margin-top:10px">
+            A blank box means "still unknown", so that item is left out rather than
+            counted as a zero.
+          </p>
+        {% endif %}
       </section>
 
-      {% if items %}
+      {# graded too: a course with every item marked can still hold a
+         scenario, and a saved regrade is the whole point of one. #}
+      {% if items or graded %}
         <section class="card">
           <h3 style="margin-top:0">Save this as a scenario</h3>
           <div class="row">
@@ -237,6 +302,21 @@
             last = number;
           });
           if (last) last.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+      });
+
+      // "reset" on a regrade row: empty the box, which is how the row says
+      // "keep the real score", and put the slider back where the mark is.
+      document.querySelectorAll(".reset-regrade").forEach(function (button) {
+        button.addEventListener("click", function () {
+          var row = button.closest(".slider-row");
+          if (!row) return;
+          var number = row.querySelector('input[type=number][name^="score_"]');
+          var slider = row.querySelector("input[type=range]");
+          if (slider) slider.value = button.dataset.earned;
+          if (!number) return;
+          number.value = "";
+          number.dispatchEvent(new Event("input", { bubbles: true }));
         });
       });
     </script>
