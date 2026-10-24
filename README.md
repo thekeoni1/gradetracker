@@ -12,8 +12,10 @@ your own user folder; your Gradescope password goes into the OS credential
 store; your Blackboard password never passes through this code at all, because
 you type it into a real browser window.
 
-It is one person's tool, published in case it is useful. No warranty, and
-nobody is on call when Blackboard changes shape.
+The Blackboard login lasts about six hours. After that, syncs fail until you
+sign in again, with `gt login blackboard` or the Reconnect button on the
+dashboard. Both open the same browser window for Hamilton's SSO and Duo.
+Gradescope logs itself back in from the stored password, so it never asks.
 
 ## Installing on Windows
 
@@ -31,7 +33,7 @@ and click through the installer with the defaults.
 
 **3. Open a terminal.** Press the Windows key, type `powershell`, press Enter.
 A blue window with a text prompt appears. You type a line and press Enter; it
-does the thing and gives you the prompt back. That is the whole interface.
+does the thing and gives you the prompt back.
 
 **4. Run these six lines**, one at a time, waiting for each to finish. The
 first one picks where the app lives (your home folder is fine).
@@ -69,12 +71,11 @@ README says `gt`.
 
 ## First run
 
-In order, once. Each one is a line you type and press Enter.
+In order, once.
 
 1. `gt login blackboard` opens a real Chromium window. Sign in through
    Hamilton's SSO and approve Duo yourself; tick "Remember me" if it is
-   offered. The window closes on its own once it detects you are in. Your
-   password never passes through this code.
+   offered. The window closes on its own once it detects you are in.
 2. `gt login gradescope` prompts for your email and password, checks them with
    one real login, then stores them in the OS credential store.
 3. `gt sync` fetches both platforms, saves the raw responses, and fills the
@@ -106,8 +107,7 @@ host. Set `BB_BASE_URL` in `.env` to the host it names and log in again.
 
 The app runs. Logins, sync, link, rules, map, serve and grade all work, with
 `.venv/bin/python -m` and `.venv/bin/gt` in place of the Windows paths, and
-`source .venv/bin/activate` to activate. Four differences, each a gap nobody
-has needed yet:
+`source .venv/bin/activate` to activate. The differences:
 
 - Data lives in `~/.local/share/gradetracker` instead of
   `%LOCALAPPDATA%\GradeTracker`. Same contents.
@@ -155,7 +155,7 @@ dashboard open, and `gt serve --no-scheduler` if you want both the task and the
 dashboard.
 
 The scheduled task runs a console command, so expect a console window to flash
-briefly every four hours. That is cosmetic and left as-is for now.
+briefly every four hours. That is cosmetic.
 
 ## The dashboard
 
@@ -227,8 +227,6 @@ gt serve --tailscale
 It prints the address to open on the phone, e.g. `http://100.x.y.z:5000/`.
 That same address works in the laptop's own browser. Add the page to the home
 screen and it behaves like an app.
-
-Four things to know.
 
 The dashboard has no login. On your own tailnet that is fine, because only
 your own devices are on it. It is also why `--host` is fussy: it takes a
