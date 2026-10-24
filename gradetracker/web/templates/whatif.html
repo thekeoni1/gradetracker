@@ -62,7 +62,13 @@
             {{ item.name }}
             <div class="sub">
               {{ item.source }} &middot;
-              {{ item.earned | num }} / {{ item.possible | num }} now
+              {# A missing item has no mark of its own; the engine scores it a
+                 real zero, which is what a new score here would replace. #}
+              {%- if item.status == "missing" %}
+                missing, counted as 0 now
+              {%- else %}
+                {{ item.earned | num }} / {{ item.possible | num }} now
+              {%- endif %}
               &middot;
               <button type="button" class="reset-regrade"
                       data-earned="{{ item.earned | num }}"
@@ -123,7 +129,11 @@
         <h3 style="margin-top:0">{{ "Ungraded items" if items else "Marked items" }}</h3>
         {% for group in groups %}
           {# group['items'], never group.items: on a dict that is the method. #}
-          {% if group['items'] %}
+          {# An Unmapped group of nothing but marked work still belongs here:
+             in points mode those scores count, so a regrade on one of them
+             moves the grade. _regradable drops them in weighted mode, where
+             they count towards nothing. #}
+          {% if group['items'] or (group.category_id is none and group['graded']) %}
             {% if group.category_id is none %}
               {# Forty-six unmapped rows would otherwise push every category
                  that counts below the fold. In points mode they do count, so
@@ -132,29 +142,39 @@
                 <summary>
                   <strong>Unmapped</strong>
                   <span class="sub">
-                    {{ group['items'] | length }} items &middot;
+                    {% if group['items'] %}
+                      {{ group['items'] | length }} items
+                    {%- else %}
+                      {{ group['graded'] | length }} marked
+                    {%- endif %} &middot;
                     {{ "not counted in weighted mode" if weighted else "counted in points mode" }}
                   </span>
                 </summary>
             {% endif %}
             <div class="category-group">
-              <div class="row" style="justify-content:space-between;align-items:center">
-                {% if group.category_id is not none %}
-                  <h4 style="margin:12px 0 4px">
-                    {{ group.name }}
-                    {% if group.weight is not none %}
-                      <span class="sub">({{ group.weight | num }}%)</span>
-                    {% endif %}
-                  </h4>
-                {% endif %}
-                <div class="row" style="align-items:center;gap:6px">
-                  <label class="sub" for="set-all-{{ loop.index }}">Set all to</label>
-                  <input type="number" class="set-all" id="set-all-{{ loop.index }}"
-                         min="0" max="100" step="1" placeholder="%" style="width:80px"
-                         aria-label="Set all {{ group.name }} items to a percent">
-                  <button class="small set-all-button" type="button">Set all</button>
+              {# Only where something is unknown. A group of nothing but marked
+                 work is the Unmapped-in-points-mode case: it has no heading of
+                 its own, and a percent would have nothing to fill, since the
+                 rows below it are scores already in. #}
+              {% if group['items'] %}
+                <div class="row" style="justify-content:space-between;align-items:center">
+                  {% if group.category_id is not none %}
+                    <h4 style="margin:12px 0 4px">
+                      {{ group.name }}
+                      {% if group.weight is not none %}
+                        <span class="sub">({{ group.weight | num }}%)</span>
+                      {% endif %}
+                    </h4>
+                  {% endif %}
+                  <div class="row" style="align-items:center;gap:6px">
+                    <label class="sub" for="set-all-{{ loop.index }}">Set all to</label>
+                    <input type="number" class="set-all" id="set-all-{{ loop.index }}"
+                           min="0" max="100" step="1" placeholder="%" style="width:80px"
+                           aria-label="Set all {{ group.name }} items to a percent">
+                    <button class="small set-all-button" type="button">Set all</button>
+                  </div>
                 </div>
-              </div>
+              {% endif %}
               {% for item in group['items'] %}
                 {% set value = preset.get(item.id, "") %}
                 <div class="slider-row">
@@ -203,8 +223,13 @@
           {% elif group.category_id is not none %}
             {# Nothing here to guess at. The category still counts towards the
                grade and can still take an item nobody has posted yet, so it
-               stays on the page -- closed, because there is nothing to read. #}
-            <details class="empty-category">
+               stays on the page -- closed, because there is nothing to read.
+
+               Unless a loaded scenario regrades something in it, in which case
+               the change it is about is two folds deep and nothing on screen
+               says so. #}
+            {% set regraded = group['graded'] | selectattr("id", "in", preset) | list %}
+            <details class="empty-category"{% if regraded %} open{% endif %}>
               <summary>
                 <strong>{{ group.name }}</strong>
                 {% if group.weight is not none %}
@@ -287,6 +312,10 @@
 
           var last = null;
           group.querySelectorAll(".slider-row").forEach(function (row) {
+            // The regrade rows sit in this same block, and a score already in
+            // is not a blank to fill: "85% on what is left" must not quietly
+            // rewrite four marks the student already has.
+            if (row.closest(".regrade")) return;
             var number = row.querySelector('input[type=number][name^="score_"]');
             var slider = row.querySelector("input[type=range]");
             if (!number) return;
@@ -313,10 +342,14 @@
           if (!row) return;
           var number = row.querySelector('input[type=number][name^="score_"]');
           var slider = row.querySelector("input[type=range]");
-          if (slider) slider.value = button.dataset.earned;
           if (!number) return;
           number.value = "";
+          // The box's own oninput puts this empty value into the range, which
+          // the browser then sanitises to the middle of the range, so the
+          // slider goes back to the mark after the event, not before it. The
+          // event itself stays: htmx recalculates on it.
           number.dispatchEvent(new Event("input", { bubbles: true }));
+          if (slider) slider.value = button.dataset.earned;
         });
       });
     </script>

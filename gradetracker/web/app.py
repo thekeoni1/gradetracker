@@ -233,6 +233,19 @@ def _split_unmapped(course, items) -> tuple[list[dict], list[dict]]:
     return mapped, [item for item in items if item["category_id"] not in known]
 
 
+def _regradable(course, graded) -> list[dict]:
+    """The marked items a new score would actually move.
+
+    In weighted mode an unmapped item is in no category, so it counts towards
+    nothing: a slider for it would move the grade by zero however far it is
+    dragged, and a row that cannot change the answer is worse than no row.
+    Points mode counts every item, so there they all stay.
+    """
+    if not _is_weighted(course):
+        return list(graded)
+    return _split_unmapped(course, graded)[0]
+
+
 def _need_by_category(course, unknown_ids, target_percent, letter) -> dict:
     """One answer per category: what that category alone would have to do.
 
@@ -317,6 +330,12 @@ def _whatif_by_category(
         unknown = group["items"]
         filled = [item for item in unknown if item["id"] in overrides]
         blank = [item for item in unknown if item["id"] not in overrides]
+        regraded = sum(1 for item in group["graded"] if item["id"] in overrides)
+        # Unmapped is not a category and has no result of its own, so with
+        # nothing unknown and nothing regraded its row would be dashes the
+        # whole way across.
+        if group["category_id"] is None and not unknown and not regraded:
+            continue
         rows.append(
             {
                 "name": group["name"],
@@ -326,9 +345,7 @@ def _whatif_by_category(
                 "unknown_count": len(unknown),
                 "filled_count": len(filled),
                 "points_blank": sum(item["possible"] or 0.0 for item in blank),
-                "regraded_count": sum(
-                    1 for item in group["graded"] if item["id"] in overrides
-                ),
+                "regraded_count": regraded,
             }
         )
     return rows
@@ -753,7 +770,7 @@ def create_app(
             return render_template("not_found.html", what=f"course {course_id}"), 404
 
         items = queries.unscored_assignments(conn, course_id)
-        graded = queries.graded_assignments(conn, course_id)
+        graded = _regradable(course, queries.graded_assignments(conn, course_id))
         current = current_grade(course)
         groups = _category_groups(course, items, graded)
         return render_template(
@@ -843,7 +860,7 @@ def create_app(
             else scenario.percent - current.percent
         )
         items = queries.unscored_assignments(conn, course_id)
-        graded = queries.graded_assignments(conn, course_id)
+        graded = _regradable(course, queries.graded_assignments(conn, course_id))
         return render_template(
             "partials/whatif_result.html",
             current=current,
@@ -865,7 +882,7 @@ def create_app(
         scenarios = queries.list_scenarios(conn, course_id)
         chosen = next((s for s in scenarios if s["id"] == scenario_id), None)
         items = queries.unscored_assignments(conn, course_id)
-        graded = queries.graded_assignments(conn, course_id)
+        graded = _regradable(course, queries.graded_assignments(conn, course_id))
         current = current_grade(course)
         groups = _category_groups(course, items, graded)
         return render_template(

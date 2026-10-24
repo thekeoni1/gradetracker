@@ -381,8 +381,16 @@ def graded_assignments(conn: sqlite3.Connection, course_id: int) -> list[dict]:
     grade becomes if a known score changes. The engine applies an override to
     any item whatever its status, so this only had to be a list of rows.
 
-    No excused clause, unlike unscored_assignments: an excused item is not
-    graded, so status already rules it out.
+    A missing item counted as a zero is one of these, not an unknown. The
+    engine already scores it 0 towards the grade, and a missed homework
+    accepted late is exactly the regrade worth asking for; it has no earned of
+    its own, so it is handed back as 0. The complement in
+    unscored_assignments is the missing item that is not counted, which stays
+    an unknown.
+
+    No excused clause, unlike unscored_assignments: an excused item is neither
+    graded nor missing, so status already rules it out. The possible > 0 clause
+    stays, because a zero-point row cannot have a slider worth dragging.
     """
     rows = conn.execute(
         """
@@ -392,13 +400,19 @@ def graded_assignments(conn: sqlite3.Connection, course_id: int) -> list[dict]:
         WHERE sc.course_id = ?
           AND a.excluded = 0
           AND a.possible > 0
-          AND a.status = 'graded'
-          AND a.earned IS NOT NULL
+          AND (
+            (a.status = 'graded' AND a.earned IS NOT NULL)
+            OR (a.status = 'missing' AND a.missing_as_zero = 1)
+          )
         ORDER BY a.due_at IS NULL, a.due_at, a.id
         """,
         (course_id,),
     ).fetchall()
-    return [dict(row) for row in rows]
+    items = [dict(row) for row in rows]
+    for item in items:
+        if item["earned"] is None:
+            item["earned"] = 0.0
+    return items
 
 
 # --- row actions ----------------------------------------------------------

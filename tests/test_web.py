@@ -1344,6 +1344,20 @@ def _graded(path, course_id):
         conn.close()
 
 
+def _empty_category_tag(body: str, assignment_id: int) -> str:
+    """What follows the class on the empty-category fold holding one box.
+
+    "" for a closed fold, " open" for an open one. Each split chunk runs to
+    the next empty-category block, so the regrade fold nested inside this one
+    is part of this chunk.
+    """
+    marker = f'name="score_{assignment_id}"'
+    for chunk in body.split('<details class="empty-category"')[1:]:
+        if marker in chunk:
+            return chunk.split(">", 1)[0]
+    return ""
+
+
 def test_a_graded_item_gets_a_blank_box_with_its_real_score_behind_it(
     client, seeded_db
 ):
@@ -1472,8 +1486,13 @@ def test_a_regrade_saves_and_loads_open(client, seeded_db):
     blocks = [b for b in _regrade_blocks(loaded) if f'score_{item["id"]}' in b]
     assert len(blocks) == 1
     assert blocks[0].startswith('<details class="regrade-toggle" open>')
+    # And so is the fold it sits inside. Everything in Problem Sets is marked,
+    # which puts the whole category behind one more fold, and an open block
+    # inside a closed one is still a change nothing on screen shows.
+    assert _empty_category_tag(loaded, item["id"]) == " open"
     # And the other categories' toggles stay closed.
     assert '<details class="regrade-toggle">' in loaded
+    assert '<details class="empty-category">' in loaded
 
 
 def test_excluded_and_excused_items_get_no_regrade_row(client, seeded_db):
@@ -1517,6 +1536,170 @@ def test_a_regrade_for_another_course_is_ignored(client, seeded_db):
     assert f'name="score_{exam["id"]}"' not in text(
         client.get(f"/courses/{econ}/whatif")
     )
+
+
+def _all_marked_points_course(seeded_db, course_id):
+    """CS 220 with every item marked: points mode, and nothing mapped.
+
+    Returns (unknown, graded). Nothing is unknown and nothing belongs to a
+    category, which is the shape that rendered a card with no rows in it.
+    """
+    conn = db.connect(seeded_db)
+    try:
+        mine = "source_course_id IN (SELECT id FROM source_courses WHERE course_id = ?)"
+        # The mirrored stubs carry no points of their own, so they are not work
+        # and get no slider either way.
+        conn.execute(
+            f"UPDATE assignments SET excluded = 1 WHERE {mine} "
+            "AND (possible IS NULL OR possible <= 0)",
+            (course_id,),
+        )
+        conn.execute(
+            f"UPDATE assignments SET status = 'graded', earned = 18.0 WHERE {mine} "
+            "AND excluded = 0 AND status != 'graded'",
+            (course_id,),
+        )
+        conn.commit()
+        return (
+            queries.unscored_assignments(conn, course_id),
+            queries.graded_assignments(conn, course_id),
+        )
+    finally:
+        conn.close()
+
+
+def test_unmapped_marked_items_get_regrade_rows_in_points_mode(client, seeded_db):
+    """Points mode counts every item, so a regrade on one of them is real."""
+    cs = course_ids(seeded_db)["CS 220"]
+    unknown, graded = _all_marked_points_course(seeded_db, cs)
+    assert not unknown
+    assert graded
+
+    body = text(client.get(f"/courses/{cs}/whatif"))
+
+    # The page promises this, two lines up, so it has to be there.
+    assert "put a different score on something already marked" in body
+    assert "Regrade something in Unmapped?" in body
+    for item in graded:
+        assert f'name="score_{item["id"]}"' in body
+    # Nothing unknown, so the count says what is actually in the block, and
+    # there is nothing for a percent to fill.
+    assert f"{len(graded)} marked" in " ".join(body.split())
+    assert "counted in points mode" in body
+    # The script always mentions these; what matters is that no row renders one.
+    assert 'class="set-all"' not in body
+    assert 'class="small set-all-button"' not in body
+
+
+def test_unmapped_marked_items_get_no_regrade_rows_in_weighted_mode(
+    client, seeded_db
+):
+    """An unmapped item counts towards nothing, so its slider would do nothing."""
+    econ = course_ids(seeded_db)["ECON 166"]
+    sets = [i for i in _graded(seeded_db, econ) if i["name"].startswith("Problem Set")]
+    loose, kept = sets[0], sets[1]
+
+    conn = db.connect(seeded_db)
+    conn.execute(
+        "UPDATE assignments SET category_id = NULL, category_locked = 1 WHERE id = ?",
+        (loose["id"],),
+    )
+    conn.commit()
+    conn.close()
+
+    body = text(client.get(f"/courses/{econ}/whatif"))
+
+    assert f'name="score_{loose["id"]}"' not in body
+    # The ones that do count keep theirs.
+    assert f'name="score_{kept["id"]}"' in body
+    assert "Regrade something in Unmapped?" not in body
+
+
+def test_the_by_category_table_leaves_out_an_unmapped_row_with_nothing_in_it(
+    client, seeded_db
+):
+    """A row of dashes the whole way across says nothing worth a row."""
+    cs = course_ids(seeded_db)["CS 220"]
+    unknown, graded = _all_marked_points_course(seeded_db, cs)
+    assert not unknown
+
+    body = text(client.get(f"/courses/{cs}/whatif"))
+
+    # Nothing unknown and nothing regraded: no row, and so no table at all.
+    assert "By category" not in body
+
+    # Fill a regrade in and the row is worth having, because now it says
+    # something the rest of the page does not.
+    first = graded[0]
+    calc = text(
+        client.post(f"/courses/{cs}/whatif/calc", data={f"score_{first['id']}": "1"})
+    )
+    cells = _by_category_rows(calc)["Unmapped"]
+
+    assert "nothing unknown" in cells[4]
+    assert "1 regraded" in cells[4]
+
+
+def _missed_homework(seeded_db, course_id, counted=True):
+    """A missing item in Problem Sets, counted as a zero or not."""
+    conn = db.connect(seeded_db)
+    try:
+        category = int(
+            conn.execute(
+                "SELECT id FROM categories WHERE course_id = ? AND name = 'Problem Sets'",
+                (course_id,),
+            ).fetchone()["id"]
+        )
+        missed = queries.add_manual_assignment(
+            conn, course_id, "Problem Set 4", None, 20.0,
+            status="missing", category_id=category,
+        )
+        if not counted:
+            conn.execute(
+                "UPDATE assignments SET missing_as_zero = 0 WHERE id = ?", (missed,)
+            )
+        conn.commit()
+        return (
+            missed,
+            {item["id"]: item for item in queries.graded_assignments(conn, course_id)},
+            {item["id"] for item in queries.unscored_assignments(conn, course_id)},
+        )
+    finally:
+        conn.close()
+
+
+def test_a_missing_item_counted_as_a_zero_can_be_regraded(client, seeded_db):
+    """A missed homework accepted late is the regrade worth asking for."""
+    econ = course_ids(seeded_db)["ECON 166"]
+    missed, graded, unknown = _missed_homework(seeded_db, econ)
+
+    # The engine already scores it a real zero, so it is a mark, not a blank.
+    assert missed in graded
+    assert graded[missed]["earned"] == 0.0
+    assert missed not in unknown
+
+    body = text(client.get(f"/courses/{econ}/whatif"))
+    row = " ".join(_regrade_row(body, missed).split())
+
+    assert row
+    # It has no score of its own, so "0 / 20" would read as a mark it was given.
+    assert "missing, counted as 0 now" in row
+    assert "0 / 20 now" not in row
+    assert 'placeholder="0"' in row
+
+
+def test_a_missing_item_not_counted_as_a_zero_stays_an_unknown(client, seeded_db):
+    """missing_as_zero = 0 means nobody has decided yet, which is a blank."""
+    econ = course_ids(seeded_db)["ECON 166"]
+    missed, graded, unknown = _missed_homework(seeded_db, econ, counted=False)
+
+    assert missed in unknown
+    assert missed not in graded
+
+    body = text(client.get(f"/courses/{econ}/whatif"))
+
+    assert f'name="score_{missed}"' in body
+    assert all(f'name="score_{missed}"' not in block for block in _regrade_blocks(body))
 
 
 def _by_category_rows(body: str) -> dict[str, list[str]]:
